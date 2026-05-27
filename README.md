@@ -6,6 +6,9 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 
 <p align="center">
   <img src="figures/comparison.png" width="700">
+  <figcaption>
+    <b>Figure 1.</b> Architecture of Path-Coupled Bellman Flows (PCBF). A shared noise variable is propagated along the Bellman path, producing a path-consistent flow-matching objective for return distributions.
+  </figcaption>
 </p>
 
 ## Overview
