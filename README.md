@@ -105,6 +105,9 @@ D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 ### OGBench Environments
 <p align="center">
   <img src="figures/ogbench.png" width="700">
+  <figcaption>
+    <b>Figure 2.</b> OGBench Tasks.
+  </figcaption>
 </p>
 
 ### Offline RL (Table 1)
