@@ -98,7 +98,9 @@ D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 </details>
 
 ## Results
-
+<p align="center">
+  <img src="figures/ogbench.png" width="700">
+</p>
 ### Offline RL (Table 1)
 
 | Domain | IQN | CODAC | FQL | IQL | Value Flows | **PCBF** |
