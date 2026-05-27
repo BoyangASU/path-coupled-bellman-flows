@@ -64,19 +64,6 @@ python main.py --env_name=visual-antmaze-teleport-navigate-singletask-{task1,tas
 python main.py --env_name=visual-cube-double-play-singletask-{task1,task2,task3,task4,task5}-v0 --p_aug=0.5 --frame_stack=3 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.9 --agent.encoder=impala_small
 ```
 
-## Reproduce Paper Results
-
-```bash
-# OGBench state-based (Table 1, 8 seeds)
-bash scripts/run_all_seeds.sh scripts/run_ogbench.sh 4
-
-# D4RL Adroit (Table 1, 8 seeds)
-bash scripts/run_all_seeds.sh scripts/run_d4rl.sh 4
-
-# Visual OGBench (Table 1, 4 seeds)
-bash scripts/run_all_seeds.sh scripts/run_visual.sh 4
-```
-
 ## Hyperparameters
 
 Domain-level hyperparameters from the paper (Table 5). λ is tuned per domain on the task marked with *.
