@@ -127,13 +127,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 ### Distributional Accuracy (Toy Environments)
 
 <p align="center">
-  <img src="figures/cdf_comparison.png" width="700">
-</p>
-
-### Hyperparameter Sensitivity
-
-<p align="center">
-  <img src="figures/sensitivity.png" width="500">
+  <img src="figures/toy.png" width="700">
 </p>
 
 ## Repository Structure
