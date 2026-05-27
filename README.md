@@ -162,10 +162,10 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 ## Citation
 
 ```bibtex
-@inproceedings{xu2026pathcoupled,
+@article{xu2026path,
   title={Path-Coupled Bellman Flows for Distributional Reinforcement Learning},
   author={Xu, Boyang and Zou, Qing and Yang, Siqin and Yan, Hao},
-  booktitle={Proceedings of the 43rd International Conference on Machine Learning},
+  journal={arXiv preprint arXiv:2605.08253},
   year={2026}
 }
 ```
