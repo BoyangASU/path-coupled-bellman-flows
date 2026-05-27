@@ -123,12 +123,19 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 
 <p align="center">
   <img src="figures/toy.png" width="700">
+  <figcaption>
+    <b>Figure 3.</b> Learned PCBF Maps on Toy Environments. Left Top
+(Solitaire); Right Top (Bernoulli); and Bottom (Discrete MC).
+  </figcaption>
 </p>
 
 ### Comparison on Learned Distribution (Toy Environments)
 
 <p align="center">
   <img src="figures/vs.png" width="700">
+  <figcaption>
+    <b>Figure 4.</b> Distributional accuracy comparison on toy environments.
+  </figcaption>
 </p>
 
 ## Repository Structure
