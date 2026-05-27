@@ -10,7 +10,7 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 
 ## Overview
 
-PCBF is a continuous-time distributional RL method that couples current and successor return flows through shared base noise, enforcing Bellman consistency along entire flow trajectories. A λ-parameterized control variate reduces training variance while preserving the Bellman endpoint geometry.
+Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distributional reinforcement learning. Rather than treating each return as an independent sample, PCBF couples the noise along a Bellman trajectory, yielding a path-consistent flow-matching objective for the return distribution. The method was accepted as a regular-track paper at ICML 2026.
 
 ```
 Successor interpolant:  Z'_t = (1-t)ε + tX'
