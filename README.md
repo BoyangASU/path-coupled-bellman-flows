@@ -4,11 +4,13 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 
 [[Paper]](https://arxiv.org/abs/2605.08253)
 
+<p align="center">
+  <img src="figures/architecture.png" width="700">
+</p>
+
 ## Overview
 
 PCBF is a continuous-time distributional RL method that couples current and successor return flows through shared base noise, enforcing Bellman consistency along entire flow trajectories. A λ-parameterized control variate reduces training variance while preserving the Bellman endpoint geometry.
-
-**Key idea:** Instead of enforcing Bellman consistency only at endpoint samples, PCBF encodes it along the full probability path:
 
 ```
 Successor interpolant:  Z'_t = (1-t)ε + tX'
@@ -19,8 +21,19 @@ Control variate: C = v_θ⁻(t, Z'_t | s',a') − (X' − ε)
 PCBF λ-target:  u = Y + λC
 ```
 
-- `λ = 0` → unbiased BCFM (high variance)
-- `λ = γ` → eliminates noisy X' via velocity prediction (low variance, small bias with shared-noise coupling)
+- **λ = 0** → unbiased BCFM (high variance)
+- **λ = γ** → eliminates noisy X' via velocity prediction (low variance, small bias with shared-noise coupling)
+
+## Demos
+
+<p align="center">
+  <img src="figures/cube_double.gif" width="250">
+  <img src="figures/scene_play.gif" width="250">
+  <img src="figures/puzzle.gif" width="250">
+</p>
+<p align="center">
+  <em>cube-double-play &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; scene-play &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; puzzle-4x4-play</em>
+</p>
 
 ## Installation
 
@@ -34,53 +47,45 @@ pip install ogbench gymnasium tqdm wandb
 pip install d4rl  # optional, for D4RL Adroit tasks
 ```
 
-## Quick Start
+## Usage
 
 ```bash
-# OGBench single task
-python main.py \
-    --env_name=cube-double-play-singletask-task2-v0 \
-    --agent=agents/lambda_flow.py \
-    --agent.discount=0.995 \
-    --agent.lambda_param=0.4 \
-    --seed=0
+# PCBF on OGBench cube-double-play (γ=0.995, λ=0.4)
+python main.py --env_name=cube-double-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.4
 
-# Toy environments
-cd toy
-python run_training_jax.py --env=solitaire --gamma=0.9 --lambda_param=0.5
+# PCBF on OGBench cube-triple-play (γ=0.995, λ=0.995)
+python main.py --env_name=cube-triple-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.995
+
+# PCBF on OGBench scene-play (γ=0.99, λ=0.2)
+python main.py --env_name=scene-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.2
+
+# PCBF on OGBench puzzle-4x4-play (γ=0.99, λ=0.2)
+python main.py --env_name=puzzle-4x4-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.2
+
+# PCBF on D4RL hammer-cloned (γ=0.99, λ=0.8)
+python main.py --env_name=hammer-cloned-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.8
+
+# PCBF on D4RL hammer-expert (γ=0.99, λ=0.9)
+python main.py --env_name=hammer-expert-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.9
+
+# PCBF on OGBench visual-antmaze-teleport (γ=0.99, λ=0.0)
+python main.py --env_name=visual-antmaze-teleport-navigate-singletask-{task1,task2,task3,task4,task5}-v0 --p_aug=0.5 --frame_stack=3 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.0 --agent.encoder=impala_small
+
+# PCBF on OGBench visual-cube-double-play (γ=0.995, λ=0.9)
+python main.py --env_name=visual-cube-double-play-singletask-{task1,task2,task3,task4,task5}-v0 --p_aug=0.5 --frame_stack=3 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.9 --agent.encoder=impala_small
 ```
 
 ## Reproduce Paper Results
 
-### OGBench (Table 1, 8 seeds)
-
 ```bash
+# OGBench state-based (Table 1, 8 seeds)
 bash scripts/run_all_seeds.sh scripts/run_ogbench.sh 4
-```
 
-### D4RL Adroit (Table 1, 8 seeds)
-
-```bash
+# D4RL Adroit (Table 1, 8 seeds)
 bash scripts/run_all_seeds.sh scripts/run_d4rl.sh 4
-```
 
-### Visual OGBench (Table 1, 4 seeds)
-
-```bash
+# Visual OGBench (Table 1, 4 seeds)
 bash scripts/run_all_seeds.sh scripts/run_visual.sh 4
-```
-
-### Single experiment
-
-```bash
-# cube-triple-play, γ=0.995, λ=0.995
-python main.py \
-    --env_name=cube-triple-play-singletask-task1-v0 \
-    --agent=agents/lambda_flow.py \
-    --agent.discount=0.995 \
-    --agent.lambda_param=0.995 \
-    --train_steps=1000000 \
-    --seed=0
 ```
 
 ## Hyperparameters
@@ -98,7 +103,8 @@ Domain-level hyperparameters from the paper (Table 5). λ is tuned per domain on
 
 D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 
-All methods share the following defaults:
+<details>
+<summary><b>Common hyperparameters (click to expand)</b></summary>
 
 | Hyperparameter | Value |
 |---|---|
@@ -112,6 +118,34 @@ All methods share the following defaults:
 | Rejection sampling candidates | 16 |
 | Target network τ | 0.005 |
 | Q ensembles | 2 |
+
+</details>
+
+## Results
+
+### Offline RL (Table 1)
+
+| Domain | IQN | CODAC | FQL | IQL | Value Flows | **PCBF** |
+|---|---|---|---|---|---|---|
+| cube-double-play | 42±8 | 61±6 | 29±6 | 7±1 | 69±4 | **71±5** |
+| scene-play | 40±1 | 55±1 | 56±2 | 28±3 | **59±4** | 54±4 |
+| puzzle-4x4-play | 27±4 | 20±18 | 17±5 | 7±2 | 27±4 | **30±4** |
+| cube-triple-play | 6±0 | 2±1 | 4±2 | 1±1 | **14±3** | 4±1 |
+| D4RL adroit | 66±5 | 69±0 | **71±4** | 70 | 65±2 | 69±2 |
+
+Bold = within 95% of best. Results averaged over 8 seeds.
+
+### Distributional Accuracy (Toy Environments)
+
+<p align="center">
+  <img src="figures/cdf_comparison.png" width="700">
+</p>
+
+### Hyperparameter Sensitivity
+
+<p align="center">
+  <img src="figures/sensitivity.png" width="500">
+</p>
 
 ## Repository Structure
 
@@ -138,26 +172,13 @@ path-coupled-bellman-flows/
 │   ├── jax_evaluation.py         # Evaluation utilities
 │   ├── jax_utils.py              # JAX helper functions
 │   └── run_training_jax.py       # Toy training script
-└── scripts/
-    ├── run_ogbench.sh            # All OGBench domains
-    ├── run_d4rl.sh               # D4RL Adroit tasks
-    ├── run_visual.sh             # Visual OGBench tasks
-    └── run_all_seeds.sh          # Multi-seed launcher
+├── scripts/                      # Reproduction scripts
+│   ├── run_ogbench.sh
+│   ├── run_d4rl.sh
+│   ├── run_visual.sh
+│   └── run_all_seeds.sh
+└── figures/                      # Figures and GIFs
 ```
-
-## Results
-
-### Offline RL (Table 1)
-
-| Domain | IQN | CODAC | FQL | IQL | Value Flows | **PCBF** |
-|---|---|---|---|---|---|---|
-| cube-double-play | 42±8 | 61±6 | 29±6 | 7±1 | 69±4 | **71±5** |
-| scene-play | 40±1 | 55±1 | 56±2 | 28±3 | **59±4** | 54±4 |
-| puzzle-4x4-play | 27±4 | 20±18 | 17±5 | 7±2 | 27±4 | **30±4** |
-| cube-triple-play | 6±0 | 2±1 | 4±2 | 1±1 | **14±3** | 4±1 |
-| D4RL adroit | 66±5 | 69±0 | **71±4** | 70 | 65±2 | 69±2 |
-
-Bold = within 95% of best. Results averaged over 8 seeds.
 
 ## Citation
 
