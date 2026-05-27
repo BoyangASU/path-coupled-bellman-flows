@@ -24,17 +24,6 @@ PCBF λ-target:  u = Y + λC
 - **λ = 0** → unbiased BCFM (high variance)
 - **λ = γ** → eliminates noisy X' via velocity prediction (low variance, small bias with shared-noise coupling)
 
-## Demos
-
-<p align="center">
-  <img src="figures/cube_double.gif" width="250">
-  <img src="figures/scene_play.gif" width="250">
-  <img src="figures/puzzle.gif" width="250">
-</p>
-<p align="center">
-  <em>cube-double-play &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; scene-play &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; puzzle-4x4-play</em>
-</p>
-
 ## Installation
 
 ```bash
