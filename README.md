@@ -117,6 +117,12 @@ Bold = within 95% of best. Results averaged over 8 seeds.
   <img src="figures/toy.png" width="700">
 </p>
 
+### Comparison on Learned Distribution (Toy Environments)
+
+<p align="center">
+  <img src="figures/vs.png" width="700">
+</p>
+
 ## Repository Structure
 
 ```
