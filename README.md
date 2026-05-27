@@ -5,7 +5,7 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 [[Paper]](https://arxiv.org/abs/2605.08253)
 
 <p align="center">
-  <img src="figures/architecture.png" width="700">
+  <img src="figures/comparison.png" width="700">
 </p>
 
 ## Overview
