@@ -2,7 +2,7 @@
 
 Official implementation of **Path-Coupled Bellman Flows for Distributional Reinforcement Learning** (ICML 2026).
 
-[[Paper]](https://arxiv.org/abs/XXXX.XXXXX) [[Project Page]](https://boyangasu.github.io/)
+[[Paper]](https://arxiv.org/abs/2605.08253)
 
 ## Overview
 
@@ -14,7 +14,7 @@ PCBF is a continuous-time distributional RL method that couples current and succ
 Successor interpolant:  Z'_t = (1-t)ε + tX'
 Current interpolant:    Z_t  = tR + γ̃Z'_t + (1-t)(1-γ̃)ε
 
-BCFM target:   Y = R + γ̃X' − ε
+BCFM target:    Y = R + γ̃X' − ε
 Control variate: C = v_θ⁻(t, Z'_t | s',a') − (X' − ε)
 PCBF λ-target:  u = Y + λC
 ```
@@ -47,7 +47,7 @@ python main.py \
 
 # Toy environments
 cd toy
-python train_toy.py --env=solitaire --gamma=0.9 --lambda_param=0.5
+python run_training_jax.py --env=solitaire --gamma=0.9 --lambda_param=0.5
 ```
 
 ## Reproduce Paper Results
@@ -132,10 +132,12 @@ path-coupled-bellman-flows/
 │   ├── log_utils.py              # CSV and W&B logging
 │   └── networks.py               # MLP, ValueVectorField, ActorVectorField
 ├── toy/                          # Toy environment experiments
-│   ├── jax_agent.py              # PCBF agent for discrete envs
-│   ├── jax_models.py             # Velocity network for toy envs
-│   ├── train_toy.py              # Toy training script
-│   └── envs/                     # Solitaire, Bernoulli, Discrete MC
+│   ├── agent/                    # PCBF agent for discrete envs
+│   ├── gym_environments/         # Solitaire, Bernoulli, Discrete MC
+│   ├── jax_models.py             # Velocity network
+│   ├── jax_evaluation.py         # Evaluation utilities
+│   ├── jax_utils.py              # JAX helper functions
+│   └── run_training_jax.py       # Toy training script
 └── scripts/
     ├── run_ogbench.sh            # All OGBench domains
     ├── run_d4rl.sh               # D4RL Adroit tasks
