@@ -115,7 +115,7 @@ D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 ### OGBench Environments
 <p align="center">
   <img src="figures/ogbench.png" width="700">
-  <figcaption>
+  <figcaption align="center">
     <b>Figure 2.</b> OGBench Tasks.
   </figcaption>
 </p>
@@ -136,7 +136,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 
 <p align="center">
   <img src="figures/toy.png" width="700">
-  <figcaption>
+  <figcaption align="center">
     <b>Figure 3.</b> Learned PCBF Maps on Toy Environments. Left Top
 (Solitaire); Right Top (Bernoulli); and Bottom (Discrete MC).
   </figcaption>
@@ -146,7 +146,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 
 <p align="center">
   <img src="figures/vs.png" width="700">
-  <figcaption>
+  <figcaption align="center">
     <b>Figure 4.</b> Distributional accuracy comparison on toy environments.
   </figcaption>
 </p>
@@ -155,7 +155,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 
 <p align="center">
   <img src="figures/vis.png" width="700">
-  <figcaption>
+  <figcaption align="center">
     <b>Figure 5.</b> Distributional Flow Analysis on the Discrete MC Environment. We visualize the learned PCBF return distributions across states s = 1 to s = 20. The estimated probability density of the flow-transported samples (blue filled) is compared against Ground Truth Monte Carlo rollouts(black dashed lines). Characteristic flow trajectories transporting random noise samples (t = 0) to the target return distribution (t = 1) over flow time. Trajectory colors distinguish individual particles sampled from the base distribution p(x0), illustrating how the model maps stochastic noise to specific return outcomes.
   </figcaption>
 </p>
