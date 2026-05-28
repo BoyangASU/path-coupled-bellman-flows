@@ -186,6 +186,7 @@ path-coupled-bellman-flows/
 │   ├── jax_utils.py              # JAX helper functions
 │   └── run_training_jax.py       # Toy training script
 ├── figures/                      # Figures and GIFs
+├── requirements.txt               
 ```
 
 ## Citation
