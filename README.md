@@ -15,17 +15,25 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 
 Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distributional reinforcement learning. Rather than treating each return as an independent sample, PCBF couples the noise along a Bellman trajectory, yielding a path-consistent flow-matching objective for the return distribution. The method was accepted as a regular-track paper at ICML 2026.
 
-```
-Successor interpolant:  Z'_t = (1-t)ε + tX'
-Current interpolant:    Z_t  = tR + γ̃Z'_t + (1-t)(1-γ̃)ε
+**Core idea.** Standard flow matching learns a velocity field that transports Gaussian noise ε into return samples. The distributional Bellman equation says the current return equals reward plus a discounted successor return: Z(s,a) = R + γZ(s',a'). PCBF exploits this by using the *same* noise ε to generate both current and successor returns, so their flow paths are geometrically coupled:
 
-BCFM target:    Y = R + γ̃X' − ε
-Control variate: C = v_θ⁻(t, Z'_t | s',a') − (X' − ε)
-PCBF λ-target:  u = Y + λC
-```
+<p align="center">
+<b>Current path:</b>&nbsp; Z<sub>t</sub> = tR + γ̃·Z'<sub>t</sub> + (1−t)(1−γ̃)·ε &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; <b>Successor path:</b>&nbsp; Z'<sub>t</sub> = (1−t)·ε + t·X'
+</p>
 
-- **λ = 0** → unbiased BCFM (high variance)
-- **λ = γ** → eliminates noisy X' via velocity prediction (low variance, small bias with shared-noise coupling)
+Both paths start from the same ε at t=0 and reach their Bellman-related endpoints at t=1. Differentiating gives the BCFM velocity target **Y = R + γ̃X' − ε**, which is unbiased but high-variance because it depends on the noisy sample X'.
+
+PCBF reduces this variance with a control variate built from the successor velocity field, yielding a λ-parameterized family of targets:
+
+<p align="center">
+<b>u = Y + λ·C</b>, &nbsp; where &nbsp; C = v<sub>θ⁻</sub>(t, Z'<sub>t</sub>) − (X' − ε)
+</p>
+
+- **λ = 0** → pure BCFM: unbiased, high variance
+- **λ > 0** → replaces noisy X' with smoother velocity predictions, reducing variance with small controlled bias
+- **λ = γ** → fully eliminates X' from the target
+
+The shared-noise coupling ensures the bias from λ > 0 is small (scaling as O((1−γ)(1−t)) under Gaussian analysis), making the bias–variance trade-off favorable in practice.
 
 ## Installation
 
