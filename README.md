@@ -15,26 +15,21 @@ Official implementation of **Path-Coupled Bellman Flows for Distributional Reinf
 
 Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distributional reinforcement learning. Rather than treating each return as an independent sample, PCBF couples the noise along a Bellman trajectory, yielding a path-consistent flow-matching objective for the return distribution. The method was accepted as a regular-track paper at ICML 2026.
 
-**Core idea.** Standard flow matching learns a velocity field that transports Gaussian noise ε into return samples. The distributional Bellman equation says the current return equals reward plus a discounted successor return: Z(s,a) = R + γZ(s',a'). PCBF exploits this by using the *same* noise ε to generate both current and successor returns, so their flow paths are geometrically coupled:
+**Core idea.** Standard flow matching learns a velocity field that transports Gaussian noise $\epsilon$ into return samples. The distributional Bellman equation says the current return equals reward plus a discounted successor return: $Z(s,a) \stackrel{d}{=} R + \gamma Z(s',a')$. PCBF exploits this by using the *same* noise $\epsilon$ to generate both current and successor returns, so their flow paths are geometrically coupled:
 
-<p align="center">
-<b>Current path:</b>&nbsp; Z<sub>t</sub> = tR + γ̃·Z'<sub>t</sub> + (1−t)(1−γ̃)·ε &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; <b>Successor path:</b>&nbsp; Z'<sub>t</sub> = (1−t)·ε + t·X'
-</p>
+$$Z_t^{s'} = (1-t)\,\epsilon + t\,X', \qquad Z_t^{s} = t\,R + \tilde{\gamma}\,Z_t^{s'} + (1-t)(1-\tilde{\gamma})\,\epsilon$$
 
-Both paths start from the same ε at t=0 and reach their Bellman-related endpoints at t=1. Differentiating gives the BCFM velocity target **Y = R + γ̃X' − ε**, which is unbiased but high-variance because it depends on the noisy sample X'.
+Both paths start from the same $\epsilon$ at $t=0$ and reach their Bellman-related endpoints at $t=1$. Differentiating gives the BCFM velocity target $Y = R + \tilde{\gamma}X' - \epsilon$, which is unbiased but high-variance because it depends on the noisy sample $X'$.
 
-PCBF reduces this variance with a control variate built from the successor velocity field, yielding a λ-parameterized family of targets:
+PCBF reduces this variance with a control variate built from the successor velocity field, yielding a $\lambda$-parameterized family of targets:
 
-<p align="center">
-<b>u = Y + λ·C</b>, &nbsp; where &nbsp; C = v<sub>θ⁻</sub>(t, Z'<sub>t</sub>) − (X' − ε)
-</p>
+$$u = Y + \lambda\,C, \qquad C = v_{\theta^-}(t,\, Z_t^{s'} \mid s', a') - (X' - \epsilon)$$
 
-- **λ = 0** → pure BCFM: unbiased, high variance
-- **λ > 0** → replaces noisy X' with smoother velocity predictions, reducing variance with small controlled bias
-- **λ = γ** → fully eliminates X' from the target
+- $\lambda = 0$: pure BCFM — unbiased, high variance
+- $\lambda > 0$: replaces noisy $X'$ with smoother velocity predictions, reducing variance with small controlled bias
+- $\lambda = \gamma$: fully eliminates $X'$ from the target
 
-The shared-noise coupling ensures the bias from λ > 0 is small (scaling as O((1−γ)(1−t)) under Gaussian analysis), making the bias–variance trade-off favorable in practice.
-
+The shared-noise coupling ensures the bias from $\lambda > 0$ is small — scaling as $O((1-\gamma)(1-t))$ under Gaussian analysis — making the bias–variance trade-off favorable in practice.
 ## Installation
 
 ```bash
