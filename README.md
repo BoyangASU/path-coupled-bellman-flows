@@ -39,8 +39,8 @@ $$u = Y + \lambda\,C, \qquad C = v_{\theta^-}(t,\, Z_t^{s'} \mid s', a') - (X' -
 The shared-noise coupling ensures the bias from $\lambda > 0$ is small — scaling as $O((1-\gamma)(1-t))$ under Gaussian analysis — making the bias–variance trade-off favorable in practice.
 ## Installation
 
-1. Create an Anaconda environment: `conda create -n value-flows python=3.10.13 -y`
-2. Activate the environment: `conda activate value-flows`
+1. Create an Anaconda environment: `conda create -n PCBF python=3.10.13 -y`
+2. Activate the environment: `conda activate PCBF`
 3. Install the dependencies:
 
 ```bash
