@@ -175,12 +175,7 @@ path-coupled-bellman-flows/
 │   ├── jax_evaluation.py         # Evaluation utilities
 │   ├── jax_utils.py              # JAX helper functions
 │   └── run_training_jax.py       # Toy training script
-├── scripts/                      # Reproduction scripts
-│   ├── run_ogbench.sh
-│   ├── run_d4rl.sh
-│   ├── run_visual.sh
-│   └── run_all_seeds.sh
-└── figures/                      # Figures and GIFs
+├── figures/                      # Figures and GIFs
 ```
 
 ## Citation
