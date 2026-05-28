@@ -18,6 +18,12 @@
   <em><b>Figure 1.</b> Architecture of Path-Coupled Bellman Flows (PCBF). A shared noise variable is propagated along the Bellman path, producing a path-consistent flow-matching objective for return distributions.</em>
 </p>
 
+<p align="center">
+  <img src="figures/demo.gif" width="700">
+  <br>
+  <em><b>Figure 2.</b> Demonstration of the trained agent using Path-Coupled Bellman Flows on Discrete MC Environment.</em>
+</p>
+
 ## Overview
 
 Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distributional reinforcement learning. Rather than treating each return as an independent sample, PCBF couples the noise along a Bellman trajectory, yielding a path-consistent flow-matching objective for the return distribution. The method was accepted as a regular-track paper at ICML 2026.
@@ -116,7 +122,7 @@ D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 <p align="center">
   <img src="figures/ogbench.png" width="700">
   <figcaption align="center">
-    <b>Figure 2.</b> OGBench Tasks.
+    <b>Figure 3.</b> OGBench Tasks.
   </figcaption>
 </p>
 
@@ -137,7 +143,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 <p align="center">
   <img src="figures/toy.png" width="700">
   <figcaption align="center">
-    <b>Figure 3.</b> Learned PCBF Maps on Toy Environments. Left Top
+    <b>Figure 4.</b> Learned PCBF Maps on Toy Environments. Left Top
 (Solitaire); Right Top (Bernoulli); and Bottom (Discrete MC).
   </figcaption>
 </p>
@@ -147,7 +153,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 <p align="center">
   <img src="figures/vs.png" width="700">
   <figcaption align="center">
-    <b>Figure 4.</b> Distributional accuracy comparison on toy environments.
+    <b>Figure 5.</b> Distributional accuracy comparison on toy environments.
   </figcaption>
 </p>
 
@@ -156,7 +162,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 <p align="center">
   <img src="figures/vis.png" width="700">
   <figcaption align="center">
-    <b>Figure 5.</b> Distributional Flow Analysis on the Discrete MC Environment. We visualize the learned PCBF return distributions across states s = 1 to s = 20. The estimated probability density of the flow-transported samples (blue filled) is compared against Ground Truth Monte Carlo rollouts(black dashed lines). Characteristic flow trajectories transporting random noise samples (t = 0) to the target return distribution (t = 1) over flow time. Trajectory colors distinguish individual particles sampled from the base distribution p(x0), illustrating how the model maps stochastic noise to specific return outcomes.
+    <b>Figure 6.</b> Distributional Flow Analysis on the Discrete MC Environment. We visualize the learned PCBF return distributions across states s = 1 to s = 20. The estimated probability density of the flow-transported samples (blue filled) is compared against Ground Truth Monte Carlo rollouts(black dashed lines). Characteristic flow trajectories transporting random noise samples (t = 0) to the target return distribution (t = 1) over flow time. Trajectory colors distinguish individual particles sampled from the base distribution p(x0), illustrating how the model maps stochastic noise to specific return outcomes.
   </figcaption>
 </p>
 
