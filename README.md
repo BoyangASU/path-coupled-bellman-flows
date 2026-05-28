@@ -24,7 +24,7 @@ Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distri
 
 **Core idea.** Standard flow matching learns a velocity field that transports Gaussian noise $\epsilon$ into return samples. The distributional Bellman equation says the current return equals reward plus a discounted successor return: $Z(s,a) \stackrel{d}{=} R + \gamma Z(s',a')$. PCBF exploits this by using the *same* noise $\epsilon$ to generate both current and successor returns, so their flow paths are geometrically coupled:
 
-$$Z_t^{s'} = (1-t)\,\epsilon + t\,X', \qquad Z_t^{s} = t\,R + \tilde{\gamma}\,Z_t^{s'} + (1-t)(1-\tilde{\gamma})\,\epsilon$$
+$$Z_t^{s'} = (1-t)\cdot \epsilon + t\cdot X', \qquad Z_t^{s} = t\cdot R + \tilde{\gamma}\cdot Z_t^{s'} + (1-t)(1-\tilde{\gamma})\cdot \epsilon$$
 
 Both paths start from the same $\epsilon$ at $t=0$ and reach their Bellman-related endpoints at $t=1$. Differentiating gives the BCFM velocity target $Y = R + \tilde{\gamma}X' - \epsilon$, which is unbiased but high-variance because it depends on the noisy sample $X'$.
 
