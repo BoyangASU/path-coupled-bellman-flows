@@ -30,7 +30,7 @@ Both paths start from the same $\epsilon$ at $t=0$ and reach their Bellman-relat
 
 PCBF reduces this variance with a control variate built from the successor velocity field, yielding a $\lambda$-parameterized family of targets:
 
-$$u = Y + \lambda\times C, \qquad C = v_{\theta^-}(t,\, Z_t^{s'} \mid s', a') - (X' - \epsilon)$$
+$$u = Y + \lambda\cdot C, \qquad C = v_{\theta^-}(t,\, Z_t^{s'} \mid s', a') - (X' - \epsilon)$$
 
 - $\lambda = 0$: pure BCFM — unbiased, high variance
 - $\lambda > 0$: replaces noisy $X'$ with smoother velocity predictions, reducing variance with small controlled bias
