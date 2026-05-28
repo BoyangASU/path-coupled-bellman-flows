@@ -47,6 +47,7 @@ The shared-noise coupling ensures the bias from $\lambda > 0$ is small — scali
 conda install -c conda-forge glew -y
 conda install -c conda-forge mesalib -y
 pip install -r requirements.txt
+```
 
 ## Usage
 
