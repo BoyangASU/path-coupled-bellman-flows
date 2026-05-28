@@ -39,15 +39,14 @@ $$u = Y + \lambda\,C, \qquad C = v_{\theta^-}(t,\, Z_t^{s'} \mid s', a') - (X' -
 The shared-noise coupling ensures the bias from $\lambda > 0$ is small — scaling as $O((1-\gamma)(1-t))$ under Gaussian analysis — making the bias–variance trade-off favorable in practice.
 ## Installation
 
-```bash
-conda create -n pcbf python=3.10
-conda activate pcbf
+1. Create an Anaconda environment: `conda create -n value-flows python=3.10.13 -y`
+2. Activate the environment: `conda activate value-flows`
+3. Install the dependencies:
 
-pip install jax[cuda12] jaxlib
-pip install flax optax ml-collections
-pip install ogbench gymnasium tqdm wandb
-pip install d4rl  # optional, for D4RL Adroit tasks
-```
+```bash
+conda install -c conda-forge glew -y
+conda install -c conda-forge mesalib -y
+pip install -r requirements.txt
 
 ## Usage
 
