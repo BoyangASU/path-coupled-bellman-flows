@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="figures/demo.gif" width="700">
+  <img src="https://github.com/BoyangASU/path-coupled-bellman-flows/raw/main/figures/demo.gif" width="700">
   <br>
   <em><b>Figure 2.</b> Demonstration of the trained agent using Path-Coupled Bellman Flows on Discrete MC Environment.</em>
 </p>
