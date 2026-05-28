@@ -1,14 +1,21 @@
-# Path-Coupled Bellman Flows (PCBF)
+<h1 align="center">Path-Coupled Bellman Flows (PCBF)</h1>
 
-Official implementation of **Path-Coupled Bellman Flows for Distributional Reinforcement Learning** (ICML 2026).
+<p align="center">
+  Official implementation of <b>Path-Coupled Bellman Flows for Distributional Reinforcement Learning</b>
+  <br>
+  <i>ICML 2026</i>
+</p>
 
-[[Paper]](https://arxiv.org/abs/2605.08253)
+<p align="center">
+  <a href="https://arxiv.org/abs/2605.08253"><img src="https://img.shields.io/badge/arXiv-2605.08253-b31b1b.svg" alt="Paper"></a>
+  <a href="https://github.com/BoyangASU/path-coupled-bellman-flows"><img src="https://img.shields.io/badge/GitHub-Code-blue.svg" alt="Code"></a>
+  <a href="https://icml.cc/virtual/2026"><img src="https://img.shields.io/badge/ICML-2026-4b44ce.svg" alt="ICML 2026"></a>
+</p>
 
 <p align="center">
   <img src="figures/comparison.png" width="700">
-  <figcaption>
-    <b>Figure 1.</b> Architecture of Path-Coupled Bellman Flows (PCBF). A shared noise variable is propagated along the Bellman path, producing a path-consistent flow-matching objective for return distributions.
-  </figcaption>
+  <br>
+  <em><b>Figure 1.</b> Architecture of Path-Coupled Bellman Flows (PCBF). A shared noise variable is propagated along the Bellman path, producing a path-consistent flow-matching objective for return distributions.</em>
 </p>
 
 ## Overview
