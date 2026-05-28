@@ -204,6 +204,3 @@ path-coupled-bellman-flows/
 
 This codebase is built on [FQL](https://github.com/seohongpark/fql) and [Value Flows](https://github.com/chongyi-zheng/value-flows). We thank Research Computing at Arizona State University for providing A100 GPU resources on the Sol supercomputer.
 
-## License
-
-MIT
