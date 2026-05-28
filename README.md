@@ -1,4 +1,4 @@
-<h1 align="center">Path-Coupled Bellman Flows (PCBF)</h1>
+<h1 align="center">Path-Coupled Bellman Flows for Distributional Reinforcement Learning</h1>
 
 <p align="center">
   Official implementation of <b>Path-Coupled Bellman Flows for Distributional Reinforcement Learning</b>
