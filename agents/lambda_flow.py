@@ -46,10 +46,26 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
 
         next_actions = batch.get("next_actions", actions)
 
-        # Compute target returns using a single target critic
-        x_prime = self.compute_flow_returns(
+        # Compute the successor return endpoint X' from BOTH target critics and
+        # aggregate (clipped-double-Q style, config["ret_agg"] == "min", for
+        # maximization-bias reduction; "mean" is a plain ensemble). Previously
+        # only target_critic_flow1 was used and only critic_flow1 was trained,
+        # which left critic_flow2 at its random initialization while
+        # sample_actions still scored candidate actions with q_agg over both
+        # critics -- injecting a random critic into action selection and
+        # discarding the double-Q pessimism the twin-critic design provides.
+        # This mirrors the sibling sw_bellman / value_flows agents, which
+        # aggregate both target critics in the target and train both critics.
+        x_prime1 = self.compute_flow_returns(
             eps, next_observations, next_actions, flow_network_name="target_critic_flow1"
         )
+        x_prime2 = self.compute_flow_returns(
+            eps, next_observations, next_actions, flow_network_name="target_critic_flow2"
+        )
+        if self.config["ret_agg"] == "min":
+            x_prime = jnp.minimum(x_prime1, x_prime2)
+        else:
+            x_prime = 0.5 * (x_prime1 + x_prime2)
         x_prime = jnp.where(dones, 0.0, x_prime)
 
         z_t_prime = t * x_prime + (1.0 - t) * eps
@@ -57,17 +73,25 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
         z_t_non_terminal = t * rewards + gamma_mask * z_t_prime + (1.0 - t) * (1.0 - gamma_mask) * eps
         z_t = jnp.where(terminal_current, z_t_terminal, z_t_non_terminal)
 
-        # Single target velocity
-        target_velocity = self.network.select("target_critic_flow1")(z_t_prime, t, next_observations, next_actions)
+        # Target velocity aggregated over both target critics at the same query
+        # point (matching the ret_agg used for the endpoint above).
+        target_velocity1 = self.network.select("target_critic_flow1")(z_t_prime, t, next_observations, next_actions)
+        target_velocity2 = self.network.select("target_critic_flow2")(z_t_prime, t, next_observations, next_actions)
+        if self.config["ret_agg"] == "min":
+            target_velocity = jnp.minimum(target_velocity1, target_velocity2)
+        else:
+            target_velocity = 0.5 * (target_velocity1 + target_velocity2)
         target_velocity = jnp.where(dones, -eps, target_velocity)
 
         epsilon_term = (lam - 1.0) * eps - dones * lam * eps
         v_target = rewards + lambda_mask * target_velocity + (gamma_mask - lambda_mask) * x_prime + epsilon_term
         v_target = jnp.where(terminal_current, -eps, v_target)
 
-        # Single critic prediction and loss
-        v_pred = self.network.select("critic_flow1")(z_t, t, observations, actions, params=grad_params)
-        critic_loss = ((v_pred - v_target) ** 2).mean()
+        # Train BOTH critics on the shared target (the twin-critic ensemble the
+        # network definition, target updates, and sample_actions already assume).
+        v_pred1 = self.network.select("critic_flow1")(z_t, t, observations, actions, params=grad_params)
+        v_pred2 = self.network.select("critic_flow2")(z_t, t, observations, actions, params=grad_params)
+        critic_loss = ((v_pred1 - v_target) ** 2 + (v_pred2 - v_target) ** 2).mean()
 
         return critic_loss, {"critic_loss": critic_loss}
 
