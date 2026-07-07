@@ -93,6 +93,14 @@ class Dataset(FrozenDict):
         """Return a subset of the dataset given the indices."""
         result = jax.tree_util.tree_map(lambda arr: arr[idxs], self._dict)
         if self.return_next_actions:
+            # Defensive: the terminal-safe hold below decides on 'terminals', and
+            # the consumer (lambda_flow critic_loss) zeroes gamma/lambda masks on
+            # its done-signal. Those must agree; assert 'terminals' is present (the
+            # field the hold relies on) so a schema lacking it fails loudly here
+            # rather than silently crossing trajectory boundaries.
+            assert 'terminals' in self._dict, (
+                "return_next_actions requires a 'terminals' field for terminal-safe "
+                "next-action lookup")
             # Terminal-safe next action: idx+1 within the same trajectory, but for
             # a terminal transition keep the current index (do NOT cross into the
             # next episode's first action). Safe because terminal transitions have
