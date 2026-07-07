@@ -93,8 +93,14 @@ class Dataset(FrozenDict):
         """Return a subset of the dataset given the indices."""
         result = jax.tree_util.tree_map(lambda arr: arr[idxs], self._dict)
         if self.return_next_actions:
-            # WARNING: This is incorrect at the end of the trajectory. Use with caution.
-            result['next_actions'] = self._dict['actions'][np.minimum(idxs + 1, self.size - 1)]
+            # Terminal-safe next action: idx+1 within the same trajectory, but for
+            # a terminal transition keep the current index (do NOT cross into the
+            # next episode's first action). Safe because terminal transitions have
+            # gamma_mask=0, so next_actions does not affect the target there anyway.
+            next_idxs = np.minimum(idxs + 1, self.size - 1)
+            terminal_now = self._dict['terminals'][idxs] > 0
+            next_idxs = np.where(terminal_now, idxs, next_idxs)
+            result['next_actions'] = self._dict['actions'][next_idxs]
         return result
 
     def augment(self, batch, keys):

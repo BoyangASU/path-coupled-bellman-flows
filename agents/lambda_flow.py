@@ -44,7 +44,21 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
         gamma_mask = gamma * (1.0 - dones)
         lambda_mask = lam * (1.0 - dones)
 
-        next_actions = batch.get("next_actions", actions)
+        # Successor action a' for the Bellman backup. Do NOT silently reuse the
+        # current action (that was a real confound: it makes the backup use the
+        # wrong continuation action). Require dataset-provided next_actions unless
+        # legacy behavior is explicitly requested.
+        if "next_actions" in batch:
+            next_actions = batch["next_actions"]
+        elif self.config["bootstrap_next_action"] == "current_action_legacy":
+            next_actions = actions
+        else:
+            raise ValueError(
+                "lambda_flow requires batch['next_actions'] for a correct multi-action "
+                "Bellman backup. Enable dataset.return_next_actions (done in main.py for "
+                "lambda_flow), or set agent.bootstrap_next_action='current_action_legacy' "
+                "to reproduce the old current-action-as-next-action behavior."
+            )
 
         # Compute the successor return endpoint X' from BOTH target critics and
         # aggregate (clipped-double-Q style, config["ret_agg"] == "min", for
@@ -86,6 +100,11 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
         epsilon_term = (lam - 1.0) * eps - dones * lam * eps
         v_target = rewards + lambda_mask * target_velocity + (gamma_mask - lambda_mask) * x_prime + epsilon_term
         v_target = jnp.where(terminal_current, -eps, v_target)
+        # Explicit gradient boundary: the target is a bootstrap built from the
+        # target critics only and must never propagate gradients into the online
+        # critics being trained (it doesn't today, since it uses target_params,
+        # but make the intent explicit and robust to future refactors).
+        v_target = jax.lax.stop_gradient(v_target)
 
         # Train BOTH critics on the shared target (the twin-critic ensemble the
         # network definition, target updates, and sample_actions already assume).
@@ -366,6 +385,11 @@ def get_config():
             tau=0.005,
             ret_agg="mean",
             q_agg="mean",
+            # Source of the successor action a' in the Bellman backup. "dataset"
+            # (default) requires batch["next_actions"] (enabled in main.py for
+            # lambda_flow); "current_action_legacy" reproduces the old, incorrect
+            # behavior of reusing the current action as the next action.
+            bootstrap_next_action="dataset",
             clip_flow_actions=True,
             clip_flow_returns=True,
             num_samples=16,
