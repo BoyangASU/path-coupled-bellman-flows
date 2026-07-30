@@ -205,26 +205,33 @@ D4RL Adroit tunes λ per task instead of per domain (γ = 0.99 throughout):
 
 | Task | Max over 8 seeds | Best seed | Ckpt | Mean ± std |
 |---|---:|:---:|---:|---:|
-| cube-double-play-task1 | **100** | s4 | 500K | 93 ± 5 |
-| cube-double-play-task2 | **84** | s5 | 900K | 77 ± 5 |
-| cube-double-play-task3 | **76** | s1 | 700K | 70 ± 5 |
-| cube-double-play-task4 | **40** | s0 | 800K | 30 ± 7 |
-| cube-double-play-task5 | **66** | s3 | 1000K | 56 ± 9 |
-| scene-play-task1 | **100** | s0 | 300K | 100 ± 0 |
-| scene-play-task2 | **100** | s7 | 600K | 86 ± 11 |
-| scene-play-task3 | **100** | s2 | 800K | 99 ± 1 |
-| scene-play-task4 | **8** | s1 | 300K | 3 ± 3 |
-| scene-play-task5 | **0** | — | — | 0 ± 0 |
-| puzzle-4x4-play-task1 | **50** | s5 | 300K | 39 ± 6 |
-| puzzle-4x4-play-task2 | **36** | s1 | 800K | 28 ± 4 |
-| puzzle-4x4-play-task3 | **52** | s3 | 400K | 38 ± 6 |
-| puzzle-4x4-play-task4 | **40** | s2 | 400K | 35 ± 5 |
-| puzzle-4x4-play-task5 | **30** | s0 | 900K | 18 ± 6 |
-| cube-triple-play-task1 | **46** | s5 | 400K | 25 ± 9 |
-| cube-triple-play-task2 | **2** | s0 | 1000K | 0 ± 1 |
-| cube-triple-play-task3 | **6** | s6 | 1000K | 3 ± 2 |
-| cube-triple-play-task4 | **2** | s1 | 400K | 0 ± 1 |
-| cube-triple-play-task5 | **2** | s3 | 900K | 0 ± 1 |
+| cube-double-play-task1 | 100 | s4 | 500K | 93 ± 5 |
+| cube-double-play-task2 | 84 | s5 | 900K | 77 ± 5 |
+| cube-double-play-task3 | 76 | s1 | 700K | 70 ± 5 |
+| cube-double-play-task4 | 40 | s0 | 800K | 30 ± 7 |
+| cube-double-play-task5 | 66 | s3 | 1000K | 56 ± 9 |
+| **cube-double-play (5 tasks)** | **73.2** | | | **65 ± 6** |
+| scene-play-task1 | 100 | s0 | 300K | 100 ± 0 |
+| scene-play-task2 | 100 | s7 | 600K | 86 ± 11 |
+| scene-play-task3 | 100 | s2 | 800K | 99 ± 1 |
+| scene-play-task4 | 8 | s1 | 300K | 3 ± 3 |
+| scene-play-task5 | 0 | — | — | 0 ± 0 |
+| **scene-play (5 tasks)** | **61.6** | | | **58 ± 3** |
+| puzzle-4x4-play-task1 | 50 | s5 | 300K | 39 ± 6 |
+| puzzle-4x4-play-task2 | 36 | s1 | 800K | 28 ± 4 |
+| puzzle-4x4-play-task3 | 52 | s3 | 400K | 38 ± 6 |
+| puzzle-4x4-play-task4 | 40 | s2 | 400K | 35 ± 5 |
+| puzzle-4x4-play-task5 | 30 | s0 | 900K | 18 ± 6 |
+| **puzzle-4x4-play (5 tasks)** | **41.6** | | | **32 ± 5** |
+| cube-triple-play-task1 | 46 | s5 | 400K | 25 ± 9 |
+| cube-triple-play-task2 | 2 | s0 | 1000K | 0 ± 1 |
+| cube-triple-play-task3 | 6 | s6 | 1000K | 3 ± 2 |
+| cube-triple-play-task4 | 2 | s1 | 400K | 0 ± 1 |
+| cube-triple-play-task5 | 2 | s3 | 900K | 0 ± 1 |
+| **cube-triple-play (5 tasks)** | **11.6** | | | **6 ± 3** |
+| **all 20 tasks** | **47.0** | | | **40 ± 4** |
+
+Bold rows aggregate over the tasks they follow: each entry is the average of the per-task values above it, so the `Mean ± std` column averages the per-task means and the per-task standard deviations separately.
 
 Configuration behind these runs:
 
