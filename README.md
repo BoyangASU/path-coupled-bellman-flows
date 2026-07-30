@@ -199,6 +199,42 @@ D4RL Adroit tunes λ per task instead of per domain (γ = 0.99 throughout):
   </figcaption>
 </p>
 
+### OGBench Success Rates
+
+160 runs on a single A100 — 4 state-based domains × 5 tasks × 8 seeds, 1M steps each, evaluated on 50 episodes every 100K steps. Per seed the score is the best single evaluation checkpoint; each task reports the max over its 8 seeds, the seed that reached it, and the checkpoint it came from, alongside the mean ± std across all 8 seeds. Task names are abbreviated — the full environment id is `<domain>-singletask-<task>-v0`.
+
+| Task | Max over 8 seeds | Best seed | Ckpt | Mean ± std |
+|---|---:|:---:|---:|---:|
+| cube-double-play-task1 | **100** | s4 | 500K | 93 ± 5 |
+| cube-double-play-task2 | **84** | s5 | 900K | 77 ± 5 |
+| cube-double-play-task3 | **76** | s1 | 700K | 70 ± 5 |
+| cube-double-play-task4 | **40** | s0 | 800K | 30 ± 7 |
+| cube-double-play-task5 | **66** | s3 | 1000K | 56 ± 9 |
+| scene-play-task1 | **100** | s0 | 300K | 100 ± 0 |
+| scene-play-task2 | **100** | s7 | 600K | 86 ± 11 |
+| scene-play-task3 | **100** | s2 | 800K | 99 ± 1 |
+| scene-play-task4 | **8** | s1 | 300K | 3 ± 3 |
+| scene-play-task5 | **0** | — | — | 0 ± 0 |
+| puzzle-4x4-play-task1 | **50** | s5 | 300K | 39 ± 6 |
+| puzzle-4x4-play-task2 | **36** | s1 | 800K | 28 ± 4 |
+| puzzle-4x4-play-task3 | **52** | s3 | 400K | 38 ± 6 |
+| puzzle-4x4-play-task4 | **40** | s2 | 400K | 35 ± 5 |
+| puzzle-4x4-play-task5 | **30** | s0 | 900K | 18 ± 6 |
+| cube-triple-play-task1 | **46** | s5 | 400K | 25 ± 9 |
+| cube-triple-play-task2 | **2** | s0 | 1000K | 0 ± 1 |
+| cube-triple-play-task3 | **6** | s6 | 1000K | 3 ± 2 |
+| cube-triple-play-task4 | **2** | s1 | 400K | 0 ± 1 |
+| cube-triple-play-task5 | **2** | s3 | 900K | 0 ± 1 |
+
+Configuration behind these runs:
+
+| Domain | λ | γ | `ret_agg` / `q_agg` |
+|---|---:|---:|:---:|
+| cube-double-play | 0.6 | 0.995 | `max` |
+| scene-play | 0.99 | 0.99 | `mean` |
+| puzzle-4x4-play | 0.3 | 0.99 | `mean` |
+| cube-triple-play | 0.995 | 0.995 | `mean` |
+
 ### Distributional Accuracy (Toy Environments)
 
 <p align="center">
