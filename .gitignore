@@ -27,3 +27,6 @@ pcbf.pdf
 # Editor / OS
 .vscode/
 .DS_Store
+
+# Stray terminal captures
+*.term

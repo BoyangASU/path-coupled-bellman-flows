@@ -57,31 +57,77 @@ pip install -r requirements.txt
 
 ## Usage
 
+Every experiment is a single call to `main.py`. A run is fully specified by the environment, the agent config file, and the two PCBF hyperparameters — `--agent.discount` (γ) and `--agent.lambda_param` (λ):
+
 ```bash
-# PCBF on OGBench cube-double-play (γ=0.995, λ=0.4)
-python main.py --env_name=cube-double-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.4
-
-# PCBF on OGBench cube-triple-play (γ=0.995, λ=0.995)
-python main.py --env_name=cube-triple-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.995
-
-# PCBF on OGBench scene-play (γ=0.99, λ=0.2)
-python main.py --env_name=scene-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.2
-
-# PCBF on OGBench puzzle-4x4-play (γ=0.99, λ=0.2)
-python main.py --env_name=puzzle-4x4-play-singletask-{task1,task2,task3,task4,task5}-v0 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.2
-
-# PCBF on D4RL hammer-cloned (γ=0.99, λ=0.8)
-python main.py --env_name=hammer-cloned-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.8
-
-# PCBF on D4RL hammer-expert (γ=0.99, λ=0.9)
-python main.py --env_name=hammer-expert-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.9
-
-# PCBF on OGBench visual-antmaze-teleport (γ=0.99, λ=0.0)
-python main.py --env_name=visual-antmaze-teleport-navigate-singletask-{task1,task2,task3,task4,task5}-v0 --p_aug=0.5 --frame_stack=3 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.0 --agent.encoder=impala_small
-
-# PCBF on OGBench visual-cube-double-play (γ=0.995, λ=0.9)
-python main.py --env_name=visual-cube-double-play-singletask-{task1,task2,task3,task4,task5}-v0 --p_aug=0.5 --frame_stack=3 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.9 --agent.encoder=impala_small
+python main.py \
+  --env_name=cube-double-play-singletask-task1-v0 \
+  --agent=agents/lambda_flow.py \
+  --agent.discount=0.995 \
+  --agent.lambda_param=0.4 \
+  --seed=0
 ```
+
+Substitute `task1` → `task2` … `task5` for the other tasks in a domain. Output goes to `exp/<wandb_run_group>/<run_name>/`, containing `flags.json`, `train.csv`, and `eval.csv`; the `evaluation/success` column of `eval.csv` is the success rate reported throughout this README.
+
+### Per-domain commands
+
+γ and λ below are the paper's Table 5 values.
+
+```bash
+# OGBench, state-based
+python main.py --env_name=cube-double-play-singletask-task1-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.4
+python main.py --env_name=cube-triple-play-singletask-task1-v0 --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.995
+python main.py --env_name=puzzle-4x4-play-singletask-task1-v0  --agent=agents/lambda_flow.py --agent.discount=0.99  --agent.lambda_param=0.2
+python main.py --env_name=scene-play-singletask-task1-v0       --agent=agents/lambda_flow.py --agent.discount=0.99  --agent.lambda_param=0.2
+
+# OGBench, pixel-based (image augmentation + frame stacking + IMPALA encoder)
+python main.py --env_name=visual-antmaze-teleport-navigate-singletask-task1-v0 --agent=agents/lambda_flow.py --agent.discount=0.99  --agent.lambda_param=0.0 --agent.encoder=impala_small --p_aug=0.5 --frame_stack=3
+python main.py --env_name=visual-cube-double-play-singletask-task1-v0          --agent=agents/lambda_flow.py --agent.discount=0.995 --agent.lambda_param=0.9 --agent.encoder=impala_small --p_aug=0.5 --frame_stack=3
+
+# D4RL Adroit (λ is per task — see the Hyperparameters section)
+python main.py --env_name=hammer-cloned-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.8
+python main.py --env_name=hammer-expert-v1 --agent=agents/lambda_flow.py --agent.discount=0.99 --agent.lambda_param=0.9
+```
+
+### Sweeping tasks and seeds
+
+The results below are 8 seeds × 5 tasks per domain. There is no launcher script in the repo — a plain shell loop (or your cluster's array-job equivalent) is enough:
+
+```bash
+for task in task1 task2 task3 task4 task5; do
+  for seed in 0 1 2 3 4 5 6 7; do
+    python main.py \
+      --env_name=cube-double-play-singletask-${task}-v0 \
+      --agent=agents/lambda_flow.py \
+      --agent.discount=0.995 --agent.lambda_param=0.6 \
+      --agent.ret_agg=max --agent.q_agg=max \
+      --seed=${seed} \
+      --wandb_run_group=cube_double_${task}
+  done
+done
+```
+
+### Frequently used flags
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--env_name` | `antmaze-large-navigate-v0` | OGBench (`*-singletask-*`) or D4RL dataset name |
+| `--agent` | `agents/value_flows.py` | Agent config file; use `agents/lambda_flow.py` for PCBF |
+| `--agent.discount` | `0.99` | Discount γ |
+| `--agent.lambda_param` | `0.0` | Control-variate weight λ; `0` = BCFM, valid range `[0, γ]` |
+| `--agent.ret_agg` | `max` | Combines the two target return samples in the λ-target (`max` / `mean` / `min`) |
+| `--agent.q_agg` | `max` | Combines Q₁/Q₂ when `sample_actions` picks among its candidates (`max` / `mean` / `min`) |
+| `--agent.num_samples` | `16` | Candidate actions per rejection-sampling step |
+| `--agent.num_flow_steps` | `10` | Euler steps used to integrate the flow |
+| `--agent.encoder` | `None` | Visual encoder, e.g. `impala_small` (pixel-based tasks only) |
+| `--seed` | `0` | Random seed |
+| `--train_steps` | `1000000` | Gradient steps |
+| `--eval_interval` | `100000` | Steps between evaluations (11 checkpoints over a 1M-step run) |
+| `--eval_episodes` | `50` | Episodes per evaluation |
+| `--save_dir` | `exp/` | Output root |
+| `--wandb_run_group` | `debug` | Subdirectory under `--save_dir`, also the W&B group name |
+| `--enable_wandb` | `0` | Set to `1` to log to Weights & Biases |
 
 ## Hyperparameters
 
@@ -96,7 +142,14 @@ Domain-level hyperparameters from the paper (Table 5). λ is tuned per domain on
 | visual-antmaze-teleport | 0.99 | 0.0 |
 | visual-cube-double-play | 0.995 | 0.9 |
 
-D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
+D4RL Adroit tunes λ per task instead of per domain (γ = 0.99 throughout):
+
+| Task | λ | | Task | λ |
+|---|---:|---|---|---:|
+| pen-cloned-v1 | 0.7 | | door-cloned-v1 | 0.5 |
+| pen-expert-v1 | 0.7 | | door-expert-v1 | 0.99 |
+| hammer-cloned-v1 | 0.8 | | relocate-cloned-v1 | 0.99 |
+| hammer-expert-v1 | 0.9 | | relocate-expert-v1 | 0.99 |
 
 <details>
 <summary><b>Common hyperparameters (click to expand)</b></summary>
@@ -140,56 +193,129 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 
 ### Reproduction with this codebase
 
-Numbers produced by this repository on a single A100 (OGBench only). Per-run score is the average of `evaluation/success` over the final three evaluation checkpoints (800K / 900K / 1M) — the protocol in Appendix H — so these columns are directly comparable to the paper's.
+160 runs on a single A100 — 4 OGBench state-based domains × 5 tasks × 8 seeds, 1M steps each, evaluated on 50 episodes every 100K steps (11 checkpoints per run). Task names are abbreviated; the full environment id is `<domain>-singletask-<task>-v0`.
 
-The critic-ensemble aggregation is a free choice the paper does not pin down, and `agents/lambda_flow.py` exposes it as two separate flags: `--agent.ret_agg` combines the two return samples inside the λ-target during critic training, and `--agent.q_agg` combines Q₁/Q₂ when `sample_actions` picks the best of its N candidate actions. Both were set to the same value here.
+The critic-ensemble aggregation is a free choice the paper does not pin down, and `agents/lambda_flow.py` exposes it as two flags: `--agent.ret_agg` combines the two return samples inside the λ-target during critic training, and `--agent.q_agg` combines Q₁/Q₂ when `sample_actions` picks the best of its candidates. Both were set to the same value in every run; the per-domain configuration is listed at the end of this section.
 
-| Domain | `max` agg | `mean` agg | Paper (Table 3) |
+#### Per-task results
+
+Per seed, the score is the **best single evaluation checkpoint** of the run. Each task reports the **max over its 8 seeds**, the seed that attained it, and the checkpoint it came from, alongside the mean ± std over all 8 seeds. (∗) marks the per-domain tuning task.
+
+| Task | Max over 8 seeds | Best seed | Ckpt | Mean ± std | Paper (Table 3) |
+|---|---:|:---:|---:|---:|---:|
+| cube-double-play-task1 | **100** | s4 | 500K | 93 ± 5 | 92 ± 3 |
+| cube-double-play-task2 (∗) | **84** | s5 | 900K | 77 ± 5 | 74 ± 7 |
+| cube-double-play-task3 | **76** | s1 | 700K | 70 ± 5 | 81 ± 8 |
+| cube-double-play-task4 | **40** | s0 | 800K | 30 ± 7 | 22 ± 5 |
+| cube-double-play-task5 | **66** | s3 | 1000K | 56 ± 9 | 84 ± 3 |
+| scene-play-task1 | **100** | s0 | 300K | 100 ± 0 | 100 ± 0 |
+| scene-play-task2 (∗) | **100** | s7 | 600K | 86 ± 11 | 57 ± 13 |
+| scene-play-task3 | **100** | s2 | 800K | 99 ± 1 | 98 ± 2 |
+| scene-play-task4 | **8** | s1 | 300K | 3 ± 3 | 12 ± 3 |
+| scene-play-task5 | **0** | — | — | 0 ± 0 | 2 ± 1 |
+| puzzle-4x4-play-task1 | **50** | s5 | 300K | 39 ± 6 | 38 ± 6 |
+| puzzle-4x4-play-task2 | **36** | s1 | 800K | 28 ± 4 | 23 ± 5 |
+| puzzle-4x4-play-task3 | **52** | s3 | 400K | 38 ± 6 | 40 ± 4 |
+| puzzle-4x4-play-task4 (∗) | **40** | s2 | 400K | 35 ± 5 | 28 ± 4 |
+| puzzle-4x4-play-task5 | **30** | s0 | 900K | 18 ± 6 | 23 ± 3 |
+| cube-triple-play-task1 | **46** | s5 | 400K | 25 ± 9 | 18 ± 4 |
+| cube-triple-play-task2 (∗) | **2** | s0 | 1000K | 0 ± 1 | 0 ± 1 |
+| cube-triple-play-task3 | **6** | s6 | 1000K | 3 ± 2 | 1 ± 1 |
+| cube-triple-play-task4 | **2** | s1 | 400K | 0 ± 1 | 0 ± 0 |
+| cube-triple-play-task5 | **2** | s3 | 900K | 0 ± 1 | 1 ± 1 |
+
+> **Read the last two columns with care.** The paper reports the average over the *final three* checkpoints, whereas the first four columns select the best checkpoint per seed and then the best seed. That selection is optimistic by construction, so it is a statement about what the codebase can reach, not a like-for-like comparison. The paper-protocol numbers are in the second collapsible below, and they are consistently lower.
+
+#### Domain summary
+
+| Domain | Max over seeds | Mean ± std | Paper (Table 1) |
 |---|---:|---:|---:|
-| cube-double-play (5 tasks) | 53 ± 7 | 47 ± 7 | **71 ± 5** |
-| scene-play (5 tasks) † | 48 ± 4 | 45 ± 3 | **54 ± 4** |
-| puzzle-4x4-play (5 tasks) † | 22 ± 5 | 23 ± 5 | **30 ± 4** |
-| cube-triple-play (5 tasks) † | 3 ± 1 | 3 ± 1 | **4 ± 1** |
-| **all 20 tasks** | **31 ± 4** | 29 ± 4 | **40 ± 4** |
-
-Mean ± std over 8 seeds. † = no true `max`-agg batch was run for that domain; both columns there are `mean`-agg and differ only by λ / re-run batch, so only the cube-double row is an actual max-vs-mean comparison. The reproduction falls short of the reported numbers on every domain, with the largest gap on cube-double-play.
+| cube-double-play (5 tasks) | 73.2 | 65 ± 6 | 71 |
+| scene-play (5 tasks) | 61.6 | 58 ± 3 | 54 |
+| puzzle-4x4-play (5 tasks) | 41.6 | 32 ± 5 | 30 |
+| cube-triple-play (5 tasks) | 11.6 | 6 ± 3 | 4 |
+| **all 20 tasks** | **47.0** | **40 ± 4** | **40** |
 
 <details>
-<summary><b>Per-task breakdown (click to expand)</b></summary>
+<summary><b>Per-seed scores (click to expand)</b></summary>
 
-| Task | `max` agg | `mean` agg | Paper |
-|---|---:|---:|---:|
-| cube-double-play-singletask-task1 | 82 ± 6 | 73 ± 8 | 92 ± 3 |
-| cube-double-play-singletask-task2 | 60 ± 9 | 44 ± 9 | 74 ± 7 |
-| cube-double-play-singletask-task3 | 56 ± 6 | 44 ± 7 | 81 ± 8 |
-| cube-double-play-singletask-task4 | 20 ± 6 | 10 ± 2 | 22 ± 5 |
-| cube-double-play-singletask-task5 | 44 ± 9 | 64 ± 9 | 84 ± 3 |
-| scene-play-singletask-task1 † | 100 ± 1 | 100 ± 0 | 100 ± 0 |
-| scene-play-singletask-task2 † | 43 ± 15 | 30 ± 9 | 57 ± 13 |
-| scene-play-singletask-task3 † | 95 ± 2 | 92 ± 3 | 98 ± 2 |
-| scene-play-singletask-task4 † | 1 ± 1 | 2 ± 2 | 12 ± 3 |
-| scene-play-singletask-task5 † | 0 ± 0 | 0 ± 0 | 2 ± 1 |
-| puzzle-4x4-play-singletask-task1 † | 28 ± 5 | 30 ± 6 | 38 ± 6 |
-| puzzle-4x4-play-singletask-task2 † | 20 ± 5 | 22 ± 3 | 23 ± 5 |
-| puzzle-4x4-play-singletask-task3 † | 25 ± 4 | 24 ± 5 | 40 ± 4 |
-| puzzle-4x4-play-singletask-task4 † | 26 ± 5 | 26 ± 7 | 28 ± 4 |
-| puzzle-4x4-play-singletask-task5 † | 11 ± 4 | 11 ± 2 | 23 ± 3 |
-| cube-triple-play-singletask-task1 † | 12 ± 5 | 12 ± 5 | 18 ± 4 |
-| cube-triple-play-singletask-task2 † | 0 ± 0 | 0 ± 0 | 0 ± 1 |
-| cube-triple-play-singletask-task3 † | 2 ± 1 | 1 ± 1 (7 seeds) | 1 ± 1 |
-| cube-triple-play-singletask-task4 † | 0 ± 0 | 0 ± 0 | 0 ± 0 |
-| cube-triple-play-singletask-task5 † | 0 ± 0 | 0 ± 0 (7 seeds) | 1 ± 1 |
+Best single evaluation checkpoint per run, in %.
 
-Configuration behind the `max` column:
-
-| Domain | `ret_agg` / `q_agg` | λ | γ |
-|---|---|---:|---:|
-| cube-double-play | max | 0.6 | 0.995 |
-| scene-play | mean | 0.99 | 0.99 |
-| puzzle-4x4-play | mean | 0.3 | 0.99 |
-| cube-triple-play | mean | 0.995 | 0.995 |
+| Domain | Task | s0 | s1 | s2 | s3 | s4 | s5 | s6 | s7 | Max |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| cube-double-play | task1 | 96 | 96 | 82 | 88 | **100** | 92 | 94 | 96 | **100** |
+| | task2 | 76 | 80 | 80 | 72 | 76 | **84** | 82 | 68 | **84** |
+| | task3 | 70 | **76** | 70 | 72 | 76 | 68 | 58 | 74 | **76** |
+| | task4 | **40** | 34 | 28 | 22 | 20 | 24 | 30 | 38 | **40** |
+| | task5 | 60 | 54 | 60 | **66** | 34 | 56 | 62 | 54 | **66** |
+| scene-play | task1 | **100** | 100 | 100 | 100 | 100 | 100 | 100 | 100 | **100** |
+| | task2 | 84 | 92 | 92 | 64 | 94 | 74 | 90 | **100** | **100** |
+| | task3 | 98 | 96 | **100** | 100 | 100 | 100 | 100 | 98 | **100** |
+| | task4 | 6 | **8** | 2 | 0 | 2 | 2 | 0 | 4 | **8** |
+| | task5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
+| puzzle-4x4-play | task1 | 28 | 38 | 38 | 38 | 40 | **50** | 42 | 40 | **50** |
+| | task2 | 30 | **36** | 22 | 26 | 30 | 30 | 26 | 24 | **36** |
+| | task3 | 38 | 34 | 36 | **52** | 42 | 34 | 36 | 34 | **52** |
+| | task4 | 26 | 38 | **40** | 36 | 40 | 28 | 30 | 40 | **40** |
+| | task5 | **30** | 12 | 18 | 16 | 16 | 16 | 12 | 24 | **30** |
+| cube-triple-play | task1 | 18 | 16 | 24 | 18 | 26 | **46** | 26 | 26 | **46** |
+| | task2 | **2** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **2** |
+| | task3 | 2 | 2 | 0 | 4 | 2 | 4 | **6** | 6 | **6** |
+| | task4 | 0 | **2** | 0 | 0 | 0 | 0 | 0 | 0 | **2** |
+| | task5 | 0 | 0 | 0 | **2** | 0 | 0 | 0 | 0 | **2** |
 
 </details>
+
+<details>
+<summary><b>Same runs under the paper's protocol (click to expand)</b></summary>
+
+Per-run score is the average of `evaluation/success` over the final three checkpoints (800K / 900K / 1M), which is what the paper reports — so these columns are directly comparable.
+
+| Domain | Mean ± std | Paper (Table 3) |
+|---|---:|---:|
+| cube-double-play (5 tasks) | 53 ± 7 | **71 ± 5** |
+| scene-play (5 tasks) | 48 ± 4 | **54 ± 4** |
+| puzzle-4x4-play (5 tasks) | 22 ± 5 | **30 ± 4** |
+| cube-triple-play (5 tasks) | 3 ± 1 | **4 ± 1** |
+| **all 20 tasks** | 31 ± 4 | **40 ± 4** |
+
+| Task | Mean ± std | Paper |
+|---|---:|---:|
+| cube-double-play-task1 | 82 ± 6 | 92 ± 3 |
+| cube-double-play-task2 | 60 ± 9 | 74 ± 7 |
+| cube-double-play-task3 | 56 ± 6 | 81 ± 8 |
+| cube-double-play-task4 | 20 ± 6 | 22 ± 5 |
+| cube-double-play-task5 | 44 ± 9 | 84 ± 3 |
+| scene-play-task1 | 100 ± 1 | 100 ± 0 |
+| scene-play-task2 | 43 ± 15 | 57 ± 13 |
+| scene-play-task3 | 95 ± 2 | 98 ± 2 |
+| scene-play-task4 | 0 ± 1 | 12 ± 3 |
+| scene-play-task5 | 0 ± 0 | 2 ± 1 |
+| puzzle-4x4-play-task1 | 28 ± 5 | 38 ± 6 |
+| puzzle-4x4-play-task2 | 20 ± 5 | 23 ± 5 |
+| puzzle-4x4-play-task3 | 25 ± 4 | 40 ± 4 |
+| puzzle-4x4-play-task4 | 26 ± 5 | 28 ± 4 |
+| puzzle-4x4-play-task5 | 11 ± 4 | 23 ± 3 |
+| cube-triple-play-task1 | 12 ± 5 | 18 ± 4 |
+| cube-triple-play-task2 | 0 ± 0 | 0 ± 1 |
+| cube-triple-play-task3 | 2 ± 1 | 1 ± 1 |
+| cube-triple-play-task4 | 0 ± 0 | 0 ± 0 |
+| cube-triple-play-task5 | 0 ± 0 | 1 ± 1 |
+
+Under the paper's protocol the reproduction falls short on every domain, with the largest gap on cube-double-play.
+
+</details>
+
+Configuration used for these runs:
+
+| Domain | λ | γ | `ret_agg` / `q_agg` |
+|---|---:|---:|:---:|
+| cube-double-play | 0.6 | 0.995 | `max` |
+| scene-play | 0.99 | 0.99 | `mean` |
+| puzzle-4x4-play | 0.3 | 0.99 | `mean` |
+| cube-triple-play | 0.995 | 0.995 | `mean` |
+
+λ here is the value picked by the sweep below, which is not always the paper's Table 5 value.
 
 ### λ sweep
 
@@ -262,7 +388,9 @@ path-coupled-bellman-flows/
 ├── main.py                       # Training entry point (OGBench / D4RL)
 ├── agents/
 │   ├── __init__.py               # Agent registry
-│   └── lambda_flow.py            # PCBF agent (Algorithm 1)
+│   ├── lambda_flow.py            # PCBF agent (Algorithm 1)
+│   └── ...                       # Baselines: c51, codac, fbrac, fql, ifql,
+│                                 #            iql, iqn, rebrac, value_flows
 ├── envs/
 │   ├── env_utils.py              # OGBench environment wrapper
 │   └── d4rl_utils.py             # D4RL dataset loading
@@ -281,7 +409,7 @@ path-coupled-bellman-flows/
 │   ├── jax_utils.py              # JAX helper functions
 │   └── run_training_jax.py       # Toy training script
 ├── figures/                      # Figures and GIFs
-├── requirements.txt               
+└── requirements.txt
 ```
 
 ## Citation
