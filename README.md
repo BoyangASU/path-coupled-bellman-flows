@@ -24,6 +24,12 @@
   <em><b>Figure 2.</b> Demonstration of the trained agent using Path-Coupled Bellman Flows on Discrete MC Environment.</em>
 </p>
 
+<p align="center">
+  <img src="figures/demo_cube_double_task1.gif" width="360">
+  <br>
+  <em><b>Figure 3.</b> PCBF on OGBench <code>cube-double-play-singletask-task1-v0</code>: three successful episodes from the 1M-step checkpoint (γ=0.995, λ=0.4), rendered with <code>render_demo.py</code>.</em>
+</p>
+
 ## Overview
 
 Path-Coupled Bellman Flows (PCBF) introduces a flow-based perspective for distributional reinforcement learning. Rather than treating each return as an independent sample, PCBF couples the noise along a Bellman trajectory, yielding a path-consistent flow-matching objective for the return distribution. The method was accepted as a regular-track paper at ICML 2026.
@@ -108,6 +114,21 @@ for task in task1 task2 task3 task4 task5; do
 done
 ```
 
+### Rendering demo GIFs
+
+`main.py` writes a checkpoint every `--save_interval` steps (default: once, at 1M). `render_demo.py` restores one, rolls out episodes, and writes the successful ones to a GIF — the environment and agent hyperparameters are read back from the run's own `flags.json`, so only the run directory is needed:
+
+```bash
+MUJOCO_GL=egl python render_demo.py \
+  --run_dir=exp/cube_double_task1/sd000_.../ \
+  --restore_epoch=1000000 \
+  --num_episodes=30 --num_keep=3 \
+  --frame_skip=4 --fps=15 --scale=1 \
+  --out=figures/demo_cube_double_task1.gif
+```
+
+That is the exact command behind Figure 3. `MUJOCO_GL=egl` is required on headless (no-display) machines. Rollout stops as soon as `--num_keep` episodes have succeeded, and the shortest ones are written first; pass `--keep_failures` to pad the GIF with the longest-surviving failures instead. OGBench manipulation environments render at 200×200 and their MJCF caps the offscreen framebuffer there, so `--scale` upsamples afterwards rather than rendering larger.
+
 ### Frequently used flags
 
 | Flag | Default | Meaning |
@@ -175,25 +196,37 @@ D4RL Adroit tunes λ per task instead of per domain (γ = 0.99 throughout):
 <p align="center">
   <img src="figures/ogbench.png" width="700">
   <figcaption align="center">
-    <b>Figure 3.</b> OGBench Tasks.
+    <b>Figure 4.</b> OGBench Tasks.
   </figcaption>
 </p>
 
 ### Offline RL (Table 1)
 
-| Domain | IQN | CODAC | FQL | IQL | Value Flows | **PCBF** |
-|---|---|---|---|---|---|---|
-| cube-double-play | 42±8 | 61±6 | 29±6 | 7±1 | 69±4 | **71±5** |
-| scene-play | 40±1 | 55±1 | 56±2 | 28±3 | **59±4** | 54±4 |
-| puzzle-4x4-play | 27±4 | 20±18 | 17±5 | 7±2 | 27±4 | **30±4** |
-| cube-triple-play | 6±0 | 2±1 | 4±2 | 1±1 | **14±3** | 4±1 |
-| D4RL adroit | 66±5 | 69±0 | **71±4** | 70 | 65±2 | 69±2 |
+| Domain | IQN | CODAC | FloQ | FQL | IQL | Value Flows | PCBF (Ours) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cube-double-play (5 tasks) | 42 ± 8 | 61 ± 6 | 47 ± 14 | 29 ± 6 | 7 ± 1 | **69 ± 4** | **71 ± 5** |
+| scene-play (5 tasks) | 40 ± 1 | 55 ± 1 | **58 ± 4** | 56 ± 2 | 28 ± 3 | **59 ± 4** | 54 ± 4 |
+| puzzle-4x4-play (5 tasks) | 27 ± 4 | 20 ± 18 | 28 ± 6 | 17 ± 5 | 7 ± 2 | 27 ± 4 | **30 ± 4** |
+| cube-triple-play (5 tasks) | 6 ± 0 | 2 ± 1 | 8 ± 3 | 4 ± 2 | 1 ± 1 | **14 ± 3** | 4 ± 1 |
+| D4RL adroit (8 tasks) | 66 ± 5 | **69 ± 0** | **70 ± 5** | **71 ± 4** | **70** | 65 ± 2 | **69 ± 2** |
+| visual-antmaze-teleport (5 tasks) | 4 ± 2 | – | – | 5 ± 2 | 6 ± 4 | 13 ± 4 | **14 ± 4** |
+| visual-cube-double-play (5 tasks) | 1 ± 0 | – | – | 6 ± 1 | 11 ± 6 | **13 ± 2** | 3 ± 0 |
 
-Bold = within 95% of best. Results averaged over 8 seeds.
+Averaged over 8 seeds (4 for the pixel-based domains). Bold = within 95% of the best method on that domain, computed from the values shown. `–` = not reported.
 
 ### Reproduction with this codebase
 
-160 runs on a single A100 — 4 OGBench state-based domains × 5 tasks × 8 seeds, 1M steps each, evaluated on 50 episodes every 100K steps (11 checkpoints per run). Task names are abbreviated; the full environment id is `<domain>-singletask-<task>-v0`.
+The four state-based OGBench domains, re-run here on a single A100: 160 runs = 4 domains × 5 tasks × 8 seeds, 1M steps each, evaluated on 50 episodes every 100K steps (11 checkpoints per run). Task names are abbreviated below; the full environment id is `<domain>-singletask-<task>-v0`.
+
+| Domain | Best ckpt<br>max over seeds | Best ckpt<br>mean ± std | Paper protocol<br>mean ± std | Paper<br>(Table 1) |
+|---|---:|---:|---:|---:|
+| cube-double-play (5 tasks) | 73.2 | 65 ± 6 | 53 ± 7 | 71 ± 5 |
+| scene-play (5 tasks) | 61.6 | 58 ± 3 | 48 ± 4 | 54 ± 4 |
+| puzzle-4x4-play (5 tasks) | 41.6 | 32 ± 5 | 22 ± 5 | 30 ± 4 |
+| cube-triple-play (5 tasks) | 11.6 | 6 ± 3 | 3 ± 1 | 4 ± 1 |
+| **all 20 tasks** | **47.0** | **40 ± 4** | **31 ± 4** | **40 ± 4** |
+
+Only the *paper protocol* column (average over the final three checkpoints) is a like-for-like comparison with the last column; under it the reproduction falls short on every domain. The *best ckpt* columns take the best of the 11 evaluation checkpoints per seed, which is optimistic by construction.
 
 The critic-ensemble aggregation is a free choice the paper does not pin down, and `agents/lambda_flow.py` exposes it as two flags: `--agent.ret_agg` combines the two return samples inside the λ-target during critic training, and `--agent.q_agg` combines Q₁/Q₂ when `sample_actions` picks the best of its candidates. Both were set to the same value in every run; the per-domain configuration is listed at the end of this section.
 
@@ -225,16 +258,6 @@ Per seed, the score is the **best single evaluation checkpoint** of the run. Eac
 | cube-triple-play-task5 | **2** | s3 | 900K | 0 ± 1 | 1 ± 1 |
 
 > **Read the last two columns with care.** The paper reports the average over the *final three* checkpoints, whereas the first four columns select the best checkpoint per seed and then the best seed. That selection is optimistic by construction, so it is a statement about what the codebase can reach, not a like-for-like comparison. The paper-protocol numbers are in the second collapsible below, and they are consistently lower.
-
-#### Domain summary
-
-| Domain | Max over seeds | Mean ± std | Paper (Table 1) |
-|---|---:|---:|---:|
-| cube-double-play (5 tasks) | 73.2 | 65 ± 6 | 71 |
-| scene-play (5 tasks) | 61.6 | 58 ± 3 | 54 |
-| puzzle-4x4-play (5 tasks) | 41.6 | 32 ± 5 | 30 |
-| cube-triple-play (5 tasks) | 11.6 | 6 ± 3 | 4 |
-| **all 20 tasks** | **47.0** | **40 ± 4** | **40** |
 
 <details>
 <summary><b>Per-seed scores (click to expand)</b></summary>
@@ -315,43 +338,7 @@ Configuration used for these runs:
 | puzzle-4x4-play | 0.3 | 0.99 | `mean` |
 | cube-triple-play | 0.995 | 0.995 | `mean` |
 
-λ here is the value picked by the sweep below, which is not always the paper's Table 5 value.
-
-### λ sweep
-
-<p align="center">
-  <img src="figures/lambda_sweep_aggs.png" width="700">
-  <br>
-  <em><b>Figure 4.</b> Success rate against λ on task 2 of each domain, for the three critic aggregations.</em>
-</p>
-
-λ swept from 0 to γ in steps of 0.1 (with γ as the final point) on task 2 of each domain, `ret_agg = q_agg`, seed 0, 1M steps. Each cell is the **best** `evaluation/success` (%) over the 11 evaluation checkpoints, written as `max / mean / min`.
-
-| λ | cube-double-play<br>(γ=0.995) | cube-triple-play<br>(γ=0.995) | puzzle-4x4-play<br>(γ=0.99) | scene-play<br>(γ=0.99) |
-|---|---:|---:|---:|---:|
-| 0 | 64 / 66 / 4 | 0 / 0 / 0 | 18 / 32 / 32 | 38 / 16 / 2 |
-| 0.1 | 64 / 72 / 2 | 0 / 0 / 0 | 18 / 18 / 20 | 44 / 28 / 6 |
-| 0.2 | 68 / 62 / 4 | 0 / 0 / 0 | 28 / 24 / 20 | 48 / 48 / 4 |
-| 0.3 | 62 / 76 / 0 | 0 / 0 / 0 | 12 / 36 / 32 | 42 / 40 / 2 |
-| 0.4 | 70 / 64 / 4 | 0 / 0 / 0 | 18 / 20 / 24 | 62 / 42 / 2 |
-| 0.5 | 78 / 72 / 0 | 0 / 0 / 0 | 22 / 34 / 22 | 46 / 68 / 2 |
-| 0.6 | **82** / **78** / 0 | 0 / 0 / 0 | 6 / 28 / 16 | 46 / 48 / 2 |
-| 0.7 | 72 / 66 / 0 | 0 / 0 / 0 | 18 / 30 / 20 | 56 / 38 / 2 |
-| 0.8 | 80 / 64 / 0 | 0 / 0 / 0 | 14 / 30 / 22 | **70** / 46 / 4 |
-| 0.9 | 80 / 54 / 0 | 0 / 0 / 0 | 8 / 32 / 18 | 44 / 60 / 4 |
-| 0.99 | – | – | 12 / 26 / 12 | 68 / **86** / 2 |
-| 0.995 | 76 / 66 / 0 | 0 / **2** / 0 | – | – |
-
-Best λ per domain, and the λ the paper selected:
-
-| Domain | best λ (`max`) | best λ (`mean`) | best λ (`min`) | paper λ |
-|---|---:|---:|---:|---:|
-| cube-double-play | 0.6 (82%) | 0.6 (78%) | 0 (4%) | 0.4 |
-| cube-triple-play | 0.1 (0%) | 0.995 (2%) | 0.1 (0%) | 0.995 |
-| puzzle-4x4-play | 0.2 (28%) | 0.3 (36%) | 0 (32%) | 0.2 |
-| scene-play | 0.8 (70%) | 0.99 (86%) | 0.1 (6%) | 0.2 |
-
-Averaged over the whole λ grid, `max` and `mean` are close (34.9% vs 35.7% across domains) while `min` collapses (6.5%) — the pessimistic aggregation that works for scalar Q-ensembles is harmful here, since both flow samples share the same base noise and the minimum systematically truncates the return distribution. Note that this sweep is a single seed at one task per domain, so individual λ cells are noisy; only the broad shape (a usable 0.3–0.6 band on cube-double, the `min` collapse) is well supported.
+λ here comes from a per-domain sweep over `[0, γ]`, so it is not always the paper's Table 5 value.
 
 ### Distributional Accuracy (Toy Environments)
 
@@ -386,6 +373,7 @@ Averaged over the whole λ grid, `max` and `mean` are close (34.9% vs 35.7% acro
 ```
 path-coupled-bellman-flows/
 ├── main.py                       # Training entry point (OGBench / D4RL)
+├── render_demo.py                # Roll out a checkpoint and save a demo GIF
 ├── agents/
 │   ├── __init__.py               # Agent registry
 │   ├── lambda_flow.py            # PCBF agent (Algorithm 1)
