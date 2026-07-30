@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Experiment outputs (run artifacts, not source)
+exp/
+exp_sweep*/
+results/
+wandb/
+*.ckpt
+
+# Local working files: cluster launch scripts, table generators, and the
+# generated result tables. The numbers they produce live in README.md.
+*.sh
+summary_*.md
+summary_*.csv
+summary_*.tex
+aggregate_exp.py
+make_agg_table.py
+make_max_table.py
+
+# Paper PDF (kept locally, not in the repo)
+pcbf.pdf
+
+# Editor / OS
+.vscode/
+.DS_Store

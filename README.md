@@ -138,12 +138,101 @@ D4RL Adroit uses per-task λ; see `scripts/run_d4rl.sh` for details.
 
 Bold = within 95% of best. Results averaged over 8 seeds.
 
+### Reproduction with this codebase
+
+Numbers produced by this repository on a single A100 (OGBench only). Per-run score is the average of `evaluation/success` over the final three evaluation checkpoints (800K / 900K / 1M) — the protocol in Appendix H — so these columns are directly comparable to the paper's.
+
+The critic-ensemble aggregation is a free choice the paper does not pin down, and `agents/lambda_flow.py` exposes it as two separate flags: `--agent.ret_agg` combines the two return samples inside the λ-target during critic training, and `--agent.q_agg` combines Q₁/Q₂ when `sample_actions` picks the best of its N candidate actions. Both were set to the same value here.
+
+| Domain | `max` agg | `mean` agg | Paper (Table 3) |
+|---|---:|---:|---:|
+| cube-double-play (5 tasks) | 53 ± 7 | 47 ± 7 | **71 ± 5** |
+| scene-play (5 tasks) † | 48 ± 4 | 45 ± 3 | **54 ± 4** |
+| puzzle-4x4-play (5 tasks) † | 22 ± 5 | 23 ± 5 | **30 ± 4** |
+| cube-triple-play (5 tasks) † | 3 ± 1 | 3 ± 1 | **4 ± 1** |
+| **all 20 tasks** | **31 ± 4** | 29 ± 4 | **40 ± 4** |
+
+Mean ± std over 8 seeds. † = no true `max`-agg batch was run for that domain; both columns there are `mean`-agg and differ only by λ / re-run batch, so only the cube-double row is an actual max-vs-mean comparison. The reproduction falls short of the reported numbers on every domain, with the largest gap on cube-double-play.
+
+<details>
+<summary><b>Per-task breakdown (click to expand)</b></summary>
+
+| Task | `max` agg | `mean` agg | Paper |
+|---|---:|---:|---:|
+| cube-double-play-singletask-task1 | 82 ± 6 | 73 ± 8 | 92 ± 3 |
+| cube-double-play-singletask-task2 | 60 ± 9 | 44 ± 9 | 74 ± 7 |
+| cube-double-play-singletask-task3 | 56 ± 6 | 44 ± 7 | 81 ± 8 |
+| cube-double-play-singletask-task4 | 20 ± 6 | 10 ± 2 | 22 ± 5 |
+| cube-double-play-singletask-task5 | 44 ± 9 | 64 ± 9 | 84 ± 3 |
+| scene-play-singletask-task1 † | 100 ± 1 | 100 ± 0 | 100 ± 0 |
+| scene-play-singletask-task2 † | 43 ± 15 | 30 ± 9 | 57 ± 13 |
+| scene-play-singletask-task3 † | 95 ± 2 | 92 ± 3 | 98 ± 2 |
+| scene-play-singletask-task4 † | 1 ± 1 | 2 ± 2 | 12 ± 3 |
+| scene-play-singletask-task5 † | 0 ± 0 | 0 ± 0 | 2 ± 1 |
+| puzzle-4x4-play-singletask-task1 † | 28 ± 5 | 30 ± 6 | 38 ± 6 |
+| puzzle-4x4-play-singletask-task2 † | 20 ± 5 | 22 ± 3 | 23 ± 5 |
+| puzzle-4x4-play-singletask-task3 † | 25 ± 4 | 24 ± 5 | 40 ± 4 |
+| puzzle-4x4-play-singletask-task4 † | 26 ± 5 | 26 ± 7 | 28 ± 4 |
+| puzzle-4x4-play-singletask-task5 † | 11 ± 4 | 11 ± 2 | 23 ± 3 |
+| cube-triple-play-singletask-task1 † | 12 ± 5 | 12 ± 5 | 18 ± 4 |
+| cube-triple-play-singletask-task2 † | 0 ± 0 | 0 ± 0 | 0 ± 1 |
+| cube-triple-play-singletask-task3 † | 2 ± 1 | 1 ± 1 (7 seeds) | 1 ± 1 |
+| cube-triple-play-singletask-task4 † | 0 ± 0 | 0 ± 0 | 0 ± 0 |
+| cube-triple-play-singletask-task5 † | 0 ± 0 | 0 ± 0 (7 seeds) | 1 ± 1 |
+
+Configuration behind the `max` column:
+
+| Domain | `ret_agg` / `q_agg` | λ | γ |
+|---|---|---:|---:|
+| cube-double-play | max | 0.6 | 0.995 |
+| scene-play | mean | 0.99 | 0.99 |
+| puzzle-4x4-play | mean | 0.3 | 0.99 |
+| cube-triple-play | mean | 0.995 | 0.995 |
+
+</details>
+
+### λ sweep
+
+<p align="center">
+  <img src="figures/lambda_sweep_aggs.png" width="700">
+  <br>
+  <em><b>Figure 4.</b> Success rate against λ on task 2 of each domain, for the three critic aggregations.</em>
+</p>
+
+λ swept from 0 to γ in steps of 0.1 (with γ as the final point) on task 2 of each domain, `ret_agg = q_agg`, seed 0, 1M steps. Each cell is the **best** `evaluation/success` (%) over the 11 evaluation checkpoints, written as `max / mean / min`.
+
+| λ | cube-double-play<br>(γ=0.995) | cube-triple-play<br>(γ=0.995) | puzzle-4x4-play<br>(γ=0.99) | scene-play<br>(γ=0.99) |
+|---|---:|---:|---:|---:|
+| 0 | 64 / 66 / 4 | 0 / 0 / 0 | 18 / 32 / 32 | 38 / 16 / 2 |
+| 0.1 | 64 / 72 / 2 | 0 / 0 / 0 | 18 / 18 / 20 | 44 / 28 / 6 |
+| 0.2 | 68 / 62 / 4 | 0 / 0 / 0 | 28 / 24 / 20 | 48 / 48 / 4 |
+| 0.3 | 62 / 76 / 0 | 0 / 0 / 0 | 12 / 36 / 32 | 42 / 40 / 2 |
+| 0.4 | 70 / 64 / 4 | 0 / 0 / 0 | 18 / 20 / 24 | 62 / 42 / 2 |
+| 0.5 | 78 / 72 / 0 | 0 / 0 / 0 | 22 / 34 / 22 | 46 / 68 / 2 |
+| 0.6 | **82** / **78** / 0 | 0 / 0 / 0 | 6 / 28 / 16 | 46 / 48 / 2 |
+| 0.7 | 72 / 66 / 0 | 0 / 0 / 0 | 18 / 30 / 20 | 56 / 38 / 2 |
+| 0.8 | 80 / 64 / 0 | 0 / 0 / 0 | 14 / 30 / 22 | **70** / 46 / 4 |
+| 0.9 | 80 / 54 / 0 | 0 / 0 / 0 | 8 / 32 / 18 | 44 / 60 / 4 |
+| 0.99 | – | – | 12 / 26 / 12 | 68 / **86** / 2 |
+| 0.995 | 76 / 66 / 0 | 0 / **2** / 0 | – | – |
+
+Best λ per domain, and the λ the paper selected:
+
+| Domain | best λ (`max`) | best λ (`mean`) | best λ (`min`) | paper λ |
+|---|---:|---:|---:|---:|
+| cube-double-play | 0.6 (82%) | 0.6 (78%) | 0 (4%) | 0.4 |
+| cube-triple-play | 0.1 (0%) | 0.995 (2%) | 0.1 (0%) | 0.995 |
+| puzzle-4x4-play | 0.2 (28%) | 0.3 (36%) | 0 (32%) | 0.2 |
+| scene-play | 0.8 (70%) | 0.99 (86%) | 0.1 (6%) | 0.2 |
+
+Averaged over the whole λ grid, `max` and `mean` are close (34.9% vs 35.7% across domains) while `min` collapses (6.5%) — the pessimistic aggregation that works for scalar Q-ensembles is harmful here, since both flow samples share the same base noise and the minimum systematically truncates the return distribution. Note that this sweep is a single seed at one task per domain, so individual λ cells are noisy; only the broad shape (a usable 0.3–0.6 band on cube-double, the `min` collapse) is well supported.
+
 ### Distributional Accuracy (Toy Environments)
 
 <p align="center">
   <img src="figures/toy.png" width="700">
   <figcaption align="center">
-    <b>Figure 4.</b> Learned PCBF Maps on Toy Environments. Left Top
+    <b>Figure 5.</b> Learned PCBF Maps on Toy Environments. Left Top
 (Solitaire); Right Top (Bernoulli); and Bottom (Discrete MC).
   </figcaption>
 </p>
@@ -153,7 +242,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 <p align="center">
   <img src="figures/vs.png" width="700">
   <figcaption align="center">
-    <b>Figure 5.</b> Distributional accuracy comparison on toy environments.
+    <b>Figure 6.</b> Distributional accuracy comparison on toy environments.
   </figcaption>
 </p>
 
@@ -162,7 +251,7 @@ Bold = within 95% of best. Results averaged over 8 seeds.
 <p align="center">
   <img src="figures/vis.png" width="700">
   <figcaption align="center">
-    <b>Figure 6.</b> Distributional Flow Analysis on the Discrete MC Environment. We visualize the learned PCBF return distributions across states s = 1 to s = 20. The estimated probability density of the flow-transported samples (blue filled) is compared against Ground Truth Monte Carlo rollouts(black dashed lines). Characteristic flow trajectories transporting random noise samples (t = 0) to the target return distribution (t = 1) over flow time. Trajectory colors distinguish individual particles sampled from the base distribution p(x0), illustrating how the model maps stochastic noise to specific return outcomes.
+    <b>Figure 7.</b> Distributional Flow Analysis on the Discrete MC Environment. We visualize the learned PCBF return distributions across states s = 1 to s = 20. The estimated probability density of the flow-transported samples (blue filled) is compared against Ground Truth Monte Carlo rollouts(black dashed lines). Characteristic flow trajectories transporting random noise samples (t = 0) to the target return distribution (t = 1) over flow time. Trajectory colors distinguish individual particles sampled from the base distribution p(x0), illustrating how the model maps stochastic noise to specific return outcomes.
   </figcaption>
 </p>
 

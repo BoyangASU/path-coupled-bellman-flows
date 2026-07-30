@@ -1,3 +1,4 @@
+# Online
 from functools import partial
 from typing import Any
 
@@ -11,67 +12,121 @@ from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
 from utils.networks import ActorVectorField, ValueVectorField
 
+
 class LambdaFlowAgent(flax.struct.PyTreeNode):
-    """Lambda-transform flow-matching agent."""
+    """Lambda-transform flow-matching agent (Value Flows style, no weights)."""
 
     rng: Any
     network: Any
     config: Any = nonpytree_field()
 
     def critic_loss(self, batch, grad_params, rng):
+        """PCBF path-coupled critic loss (Algorithm 1).
+
+        Shared base noise X₀ drives both the successor flow endpoint X' and the
+        current/successor interpolants. The regression target is the λ-target
+        u^λ = (R + γ̃X' - X₀) + λ_i[v_{θ⁻}(t, Z^{s'}_t) - (X' - X₀)] (Eq. 13),
+        which reduces to the unbiased BCFM target at λ=0.
+        """
         batch_size = batch["actions"].shape[0]
-        rng, t_rng, eps_rng = jax.random.split(rng, 3)
+        rng, actor_rng, noise_rng, time_rng, q_rng = jax.random.split(rng, 5)
 
-        observations = batch["observations"]
-        actions = batch["actions"]
-        rewards = jnp.expand_dims(batch["rewards"], axis=-1)
-        next_observations = batch["next_observations"]
-        if "dones" in batch:
-            dones = jnp.expand_dims(batch["dones"], axis=-1)
-        elif "terminals" in batch:
-            dones = jnp.expand_dims(batch["terminals"], axis=-1)
-        elif "masks" in batch:
-            dones = jnp.expand_dims(1.0 - batch["masks"], axis=-1)
+        # Sample next action A' ~ π(·|S').
+        next_actions = self.sample_actions(batch["next_observations"], actor_rng)
+
+        # Shared base noise X₀ and flow time t.
+        noises = jax.random.normal(noise_rng, (batch_size, 1))
+        times = jax.random.uniform(time_rng, (batch_size, 1))
+
+        # Successor flow endpoint X' = ψ¹_{θ⁻}(X₀ | s', a').
+        next_returns1 = self.compute_flow_returns(
+            noises, batch["next_observations"], next_actions,
+            flow_network_name="target_critic_flow1")
+        next_returns2 = self.compute_flow_returns(
+            noises, batch["next_observations"], next_actions,
+            flow_network_name="target_critic_flow2")
+        if self.config["ret_agg"] == "min":
+            next_returns = jnp.minimum(next_returns1, next_returns2)
+        elif self.config["ret_agg"] == "max":
+            next_returns = jnp.maximum(next_returns1, next_returns2)
         else:
-            dones = jnp.zeros((batch_size, 1))
-        terminal_current = batch.get("terminal_current", jnp.zeros((batch_size, 1)))
+            next_returns = (next_returns1 + next_returns2) / 2
 
-        t = jax.random.uniform(t_rng, (batch_size, 1))
-        eps = jax.random.normal(eps_rng, (batch_size, 1))
+        masks = jnp.expand_dims(batch["masks"], axis=-1)      # masks = 1 - d
+        rewards = jnp.expand_dims(batch["rewards"], axis=-1)
 
         gamma = self.config["discount"]
         lam = self.config["lambda_param"]
-        gamma_mask = gamma * (1.0 - dones)
-        lambda_mask = lam * (1.0 - dones)
+        # Effective discount γ̃ = γ(1-d) and control-variate weight λ_i = (1-d)λ.
+        # Both vanish at terminal transitions (no successor flow to correct).
+        gamma_tilde = gamma * masks
+        lam_eff = masks * lam
 
-        next_actions = batch.get("next_actions", actions)
+        # Successor interpolant (Eq. 8): linear path from X₀ to X'.
+        z_succ = (1 - times) * noises + times * next_returns
 
-        # Compute target returns using a single target critic
-        x_prime = self.compute_flow_returns(
-            eps, next_observations, next_actions, flow_network_name="target_critic_flow1"
+        # Current interpolant (Eq. 10): the point at which v_θ is regressed.
+        noisy_returns = (
+            times * rewards
+            + gamma_tilde * z_succ
+            + (1 - times) * (1 - gamma_tilde) * noises
         )
-        x_prime = jnp.where(dones, 0.0, x_prime)
 
-        z_t_prime = t * x_prime + (1.0 - t) * eps
-        z_t_terminal = (1.0 - t) * eps
-        z_t_non_terminal = t * rewards + gamma_mask * z_t_prime + (1.0 - t) * (1.0 - gamma_mask) * eps
-        z_t = jnp.where(terminal_current, z_t_terminal, z_t_non_terminal)
+        # Successor velocity evaluated at the successor interpolant (Eq. 12).
+        c1 = self.network.select("target_critic_flow1")(
+            z_succ, times, batch["next_observations"], next_actions)
+        c2 = self.network.select("target_critic_flow2")(
+            z_succ, times, batch["next_observations"], next_actions)
+        if self.config["ret_agg"] == "min":
+            c = jnp.minimum(c1, c2)
+        elif self.config["ret_agg"] == "max":
+            c = jnp.maximum(c1, c2)
+        else:
+            c = (c1 + c2) / 2
 
-        # Single target velocity
-        target_velocity = self.network.select("target_critic_flow1")(z_t_prime, t, next_observations, next_actions)
-        target_velocity = jnp.where(dones, -eps, target_velocity)
+        # Control variate (Eq. 12): C = c - (X' - X₀); zero-mean when v̄ = v*.
+        control_variate = c - (next_returns - noises)
+        # BCFM target (Eq. 11): Y = R + γ̃ X' - X₀  (exact current-path velocity).
+        bcfm_target = rewards + gamma_tilde * next_returns - noises
+        # λ-target (Eq. 13): u^λ = Y + λ_i C.  λ=0 -> unbiased BCFM.
+        target_vector_field = jax.lax.stop_gradient(bcfm_target + lam_eff * control_variate)
 
-        epsilon_term = (lam - 1.0) * eps - dones * lam * eps
-        v_target = rewards + lambda_mask * target_velocity + (gamma_mask - lambda_mask) * x_prime + epsilon_term
-        v_target = jnp.where(terminal_current, -eps, v_target)
+        # Predict vector field
+        vector_field1 = self.network.select("critic_flow1")(
+            noisy_returns, times, batch["observations"], batch["actions"], params=grad_params)
+        vector_field2 = self.network.select("critic_flow2")(
+            noisy_returns, times, batch["observations"], batch["actions"], params=grad_params)
+        
+        critic_loss = ((vector_field1 - target_vector_field) ** 2 +
+                       (vector_field2 - target_vector_field) ** 2).mean()
+    
+        # Logging
+        q_noises = jax.random.normal(q_rng, (batch_size, 1))
+        q1 = (q_noises + self.network.select("critic_flow1")(
+            q_noises, jnp.zeros_like(q_noises), batch["observations"], batch["actions"])).squeeze(-1)
+        q2 = (q_noises + self.network.select("critic_flow2")(
+            q_noises, jnp.zeros_like(q_noises), batch["observations"], batch["actions"])).squeeze(-1)
+        if self.config["clip_flow_returns"]:
+            q1 = jnp.clip(q1, self.config["min_reward"] / (1 - self.config["discount"]),
+                          self.config["max_reward"] / (1 - self.config["discount"]))
+            q2 = jnp.clip(q2, self.config["min_reward"] / (1 - self.config["discount"]),
+                          self.config["max_reward"] / (1 - self.config["discount"]))
+        if self.config["q_agg"] == "min":
+            q = jnp.minimum(q1, q2)
+        elif self.config["q_agg"] == "max":
+            q = jnp.maximum(q1, q2)
+        else:
+            q = (q1 + q2) / 2
 
-        # Single critic prediction and loss
-        v_pred = self.network.select("critic_flow1")(z_t, t, observations, actions, params=grad_params)
-        critic_loss = ((v_pred - v_target) ** 2).mean()
-
-        return critic_loss, {"critic_loss": critic_loss}
+        return critic_loss, {
+            "critic_loss": critic_loss,
+            "q_mean": q.mean(),
+            "q_max": q.max(),
+            "q_min": q.min(),
+        }
 
     def actor_loss(self, batch, grad_params, rng):
+        """Compute the BC flow actor loss (same as Value Flows)."""
         batch_size, action_dim = batch["actions"].shape
         rng, x_rng, t_rng = jax.random.split(rng, 3)
 
@@ -135,6 +190,7 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
         end_times=None,
         flow_network_name="critic_flow",
     ):
+        """Compute returns from the return flow model."""
         noisy_returns = noises
         if init_times is None:
             init_times = jnp.zeros((*noisy_returns.shape[:-1], 1), dtype=noisy_returns.dtype)
@@ -164,6 +220,7 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
 
     @jax.jit
     def compute_flow_actions(self, noises, observations, init_times=None, end_times=None):
+        """Compute actions from the BC flow model."""
         noisy_actions = noises
         if init_times is None:
             init_times = jnp.zeros((*noisy_actions.shape[:-1], 1), dtype=noisy_actions.dtype)
@@ -191,47 +248,48 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
 
     @jax.jit
     def sample_actions(self, observations, seed=None, temperature=1.0):
+        """Sample actions using rejection sampling."""
         action_seed, q_seed = jax.random.split(seed, 2)
         actor_noises = jax.random.normal(
             action_seed,
-            (
-                *observations.shape[: -len(self.config["ob_dims"])],
-                self.config["num_samples"],
-                self.config["action_dim"],
-            ),
+            (*observations.shape[: -len(self.config["ob_dims"])],
+             self.config["num_samples"], self.config["action_dim"])
         )
+        # n_observations = jnp.repeat(
+        #     jnp.expand_dims(observations, -2),
+        #     self.config["num_samples"],
+        #     axis=-2,
+        # )
+
+        expand_axis = -(len(self.config['ob_dims']) + 1)
         n_observations = jnp.repeat(
-            jnp.expand_dims(observations, -2),
-            self.config["num_samples"],
-            axis=-2,
+            jnp.expand_dims(observations, expand_axis),
+            self.config['num_samples'],
+            axis=expand_axis,
         )
+        
         flow_actions = self.compute_flow_actions(actor_noises, n_observations)
 
         q_noises = jax.random.normal(
             q_seed,
-            (*observations.shape[: -len(self.config["ob_dims"])], self.config["num_samples"], 1),
+            (*observations.shape[: -len(self.config["ob_dims"])], self.config["num_samples"], 1)
         )
         q1 = (q_noises + self.network.select("critic_flow1")(
-            q_noises, jnp.zeros_like(q_noises), n_observations, flow_actions
-        )).squeeze(-1)
+            q_noises, jnp.zeros_like(q_noises), n_observations, flow_actions)).squeeze(-1)
         q2 = (q_noises + self.network.select("critic_flow2")(
-            q_noises, jnp.zeros_like(q_noises), n_observations, flow_actions
-        )).squeeze(-1)
+            q_noises, jnp.zeros_like(q_noises), n_observations, flow_actions)).squeeze(-1)
         if self.config["clip_flow_returns"]:
-            q1 = jnp.clip(
-                q1,
-                self.config["min_reward"] / (1 - self.config["discount"]),
-                self.config["max_reward"] / (1 - self.config["discount"]),
-            )
-            q2 = jnp.clip(
-                q2,
-                self.config["min_reward"] / (1 - self.config["discount"]),
-                self.config["max_reward"] / (1 - self.config["discount"]),
-            )
+            q1 = jnp.clip(q1, self.config["min_reward"] / (1 - self.config["discount"]),
+                          self.config["max_reward"] / (1 - self.config["discount"]))
+            q2 = jnp.clip(q2, self.config["min_reward"] / (1 - self.config["discount"]),
+                          self.config["max_reward"] / (1 - self.config["discount"]))
         if self.config["q_agg"] == "min":
             q = jnp.minimum(q1, q2)
+        elif self.config["q_agg"] == "max":
+            q = jnp.maximum(q1, q2)
         else:
             q = (q1 + q2) / 2
+
         if len(q.shape) > 1:
             actions = flow_actions[jnp.arange(q.shape[0]), jnp.argmax(q, axis=-1)]
         else:
@@ -301,13 +359,7 @@ class LambdaFlowAgent(flax.struct.PyTreeNode):
         network_args = {k: v[1] for k, v in network_info.items()}
 
         network_def = ModuleDict(networks)
-        # network_tx = optax.adam(learning_rate=config["lr"])
-        
-        network_tx = optax.chain(
-            optax.clip_by_global_norm(1.0),  # grad clipping
-            optax.adam(learning_rate=config["lr"])
-        )
-        
+        network_tx = optax.adam(learning_rate=config["lr"])
         network_params = network_def.init(init_rng, **network_args)["params"]
         network = TrainState.create(network_def, network_params, tx=network_tx)
 
@@ -338,10 +390,10 @@ def get_config():
             actor_layer_norm=True,
             value_layer_norm=True,
             discount=0.99,
-            lambda_param=ml_collections.config_dict.placeholder(float),
+            lambda_param=0.0,  # λ=0 reduces to BCFM
             tau=0.005,
-            ret_agg="mean",
-            q_agg="mean",
+            ret_agg="max",
+            q_agg="max",
             clip_flow_actions=True,
             clip_flow_returns=True,
             num_samples=16,
@@ -350,3 +402,4 @@ def get_config():
         )
     )
     return config
+
