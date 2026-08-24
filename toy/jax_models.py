@@ -90,9 +90,18 @@ def ode_solve(
     def step(x, i):
         t = jnp.full_like(x, i / steps)
         v = apply_fn({"params": params}, x, t, s, a)
-        # If multi-action output, average over actions.
-        if v.ndim > x.ndim:
-            v = v.mean(axis=-1, keepdims=True)
+        # Multi-action output is one head per action (out_dim == n_actions);
+        # gather the head for the action actually queried, don't average
+        # across actions (averaging discards which action `a` was, silently
+        # answering a different question than the one asked). Also fixes a
+        # shape-mismatch crash in jax.lax.scan: v.ndim == x.ndim here even
+        # for multi-action output ([B, n_actions] vs [B, 1]), so the old
+        # `v.ndim > x.ndim` guard never fired and x's carry shape changed
+        # mid-scan.
+        if v.ndim > 1 and v.shape[-1] > 1:
+            v = jnp.take_along_axis(v, a.reshape(-1, 1), axis=-1)
+        elif v.ndim == 1:
+            v = v[:, None]
         x_next = x + dt * v
         return x_next, None
 

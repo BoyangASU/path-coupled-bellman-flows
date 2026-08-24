@@ -37,6 +37,7 @@ class JaxValueFlowRL:
     tau: float = 0.005
     train_ode_steps: int = 20
     eval_ode_steps: int = 50
+    bootstrap_next_action: str = None
     rng: jax.Array = None  # PRNGKey
     n_states: int = None
     n_actions: int = None
@@ -59,6 +60,7 @@ class JaxValueFlowRL:
         learning_rate: float = 5e-3,
         tau: float = 0.005,
         seed: int = 0,
+        bootstrap_next_action: str = None,
     ):
         """
         lambda_param here is *not* TD(λ); it's the weight on L_BCFM.
@@ -108,6 +110,7 @@ class JaxValueFlowRL:
             tau=tau,
             train_ode_steps=20,
             eval_ode_steps=50,
+            bootstrap_next_action=bootstrap_next_action,
             rng=rng,
             n_states=n_states,
             n_actions=n_actions,
@@ -167,6 +170,7 @@ class JaxValueFlowRL:
         model = self.model
         ode_steps = self.train_ode_steps
         bcfm_lambda = self.bcfm_lambda
+        bootstrap_next_action = self.bootstrap_next_action
 
         @jax.jit
         def train_step_jit(state: FlowTrainState, batch: Dict[str, jnp.ndarray], rng: jax.Array):
@@ -183,17 +187,49 @@ class JaxValueFlowRL:
             eps = jax.random.normal(eps_rng, (B, 1))
             gamma_mask = gamma * (1.0 - dones)
 
-            next_actions = actions if n_actions > 1 else None
-
             # ----- 1) Flow sample x' at (s', a') (t=1) -----
-            x_prime = ode_solve(
-                model.apply,
-                state.target_params,
-                eps,
-                s=next_states,
-                a=next_actions,
-                steps=ode_steps,
-            )
+            if n_actions <= 1:
+                next_actions = None
+                x_prime = ode_solve(
+                    model.apply, state.target_params, eps,
+                    s=next_states, a=next_actions, steps=ode_steps,
+                )
+            elif "next_actions" in batch:
+                next_actions = batch["next_actions"]
+                x_prime = ode_solve(
+                    model.apply, state.target_params, eps,
+                    s=next_states, a=next_actions, steps=ode_steps,
+                )
+            elif bootstrap_next_action == "greedy":
+                # Evaluate every action at s' under the same eps, take the
+                # argmax (moving target: tracks the current critic's own
+                # values, classical Q-learning-style bootstrap).
+                cols = [
+                    ode_solve(
+                        model.apply, state.target_params, eps,
+                        s=next_states, a=jnp.full((B,), a, dtype=jnp.int32),
+                        steps=ode_steps,
+                    ).reshape(B, 1)
+                    for a in range(n_actions)
+                ]
+                xall = jnp.concatenate(cols, axis=1)  # [B, n_actions]
+                next_actions = jnp.argmax(xall, axis=1).astype(jnp.int32)
+                x_prime = jnp.take_along_axis(xall, next_actions.reshape(-1, 1), axis=1)
+            elif bootstrap_next_action == "current_action_legacy":
+                next_actions = actions
+                x_prime = ode_solve(
+                    model.apply, state.target_params, eps,
+                    s=next_states, a=next_actions, steps=ode_steps,
+                )
+            else:
+                raise ValueError(
+                    "jax_value_flow_agent requires batch['next_actions'] on "
+                    "multi-action environments. Enable dataset.return_next_actions, "
+                    "or set agent.bootstrap_next_action='greedy' (argmax over the "
+                    "current critic) or 'current_action_legacy' (repeat the "
+                    "current action; not recommended, does not target Q^pi_beta "
+                    "or Q*)."
+                )
             if x_prime.ndim == 1:
                 x_prime = x_prime[:, None]
 
