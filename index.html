@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OGBench Manipulation Tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column of three task families; each family is a row of looping clips — logged data first, then goal tasks. */
+:root{
+  --bg:#f6f5f4; --surface:#ffffff; --fg:#1d1a1c; --muted:#6b6467; --line:#e2dcdf;
+  --maroon:#8c1d40; --gold:#ffc627; --data:#5a6b7d;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121114; --surface:#1c1a1e; --fg:#eeeaec; --muted:#a39ba0; --line:#34303a;
+  --maroon:#e0628a; --gold:#ffc627; --data:#9fb0c2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121114; --surface:#1c1a1e; --fg:#eeeaec; --muted:#a39ba0; --line:#34303a;
+  --maroon:#e0628a; --gold:#ffc627; --data:#9fb0c2; color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.5}
+main{max-width:1100px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:30px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;margin:6px 0 10px;text-wrap:balance}
+.lede{margin:0;max-width:64ch}
+.key{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:14px;color:var(--muted)}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 7px;color:#fff}
+.chip.data{background:var(--data)} .chip.task{background:var(--maroon)}
+section{display:grid;gap:12px}
+h2{font-size:22px;margin:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{font-size:14px;font-weight:400;color:var(--muted)}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:700px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:440px){.row{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid}
+video{display:block;width:100%;aspect-ratio:1;max-width:100%;background:#0d0f14;object-fit:cover}
+figcaption{padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:14px}
+figcaption code{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.foot{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.foot a{color:var(--maroon)}
+a:focus-visible,video:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">INFORMS 2026 · Path-Coupled Bellman Flows · offline RL benchmarks</div>
+    <h1>OGBench manipulation tasks</h1>
+    <p class="lede">In offline RL the agent never practices on the robot. It learns only from previously logged play data, then must solve new goal-reaching tasks. Each row shows the logged data first, followed by evaluation tasks. Videos are OGBench's own demos.</p>
+    <div class="key"><span><span class="chip data">Data</span> logged play the agent learns from</span><span><span class="chip task">Task</span> a goal the agent must reach at test time</span></div>
+  </header>
+
+  <section aria-labelledby="h-cube">
+    <h2 id="h-cube">Cube <small>pick up and stack four cubes into target positions</small></h2>
+    <div class="row">
+      <figure><video src="videos/cube-quadruple-v0_data_play.mp4" poster="posters/cube-quadruple-v0_data_play.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Cube logged play data"></video><figcaption><span class="chip data">Data</span>Logged play<code>cube-quadruple</code></figcaption></figure>
+      <figure><video src="videos/cube-quadruple-v0_task4.mp4" poster="posters/cube-quadruple-v0_task4.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Cube task 4"></video><figcaption><span class="chip task">Task</span>Task 4<code>cube-quadruple</code></figcaption></figure>
+      <figure><video src="videos/cube-quadruple-v0_task5.mp4" poster="posters/cube-quadruple-v0_task5.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Cube task 5"></video><figcaption><span class="chip task">Task</span>Task 5<code>cube-quadruple</code></figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-scene">
+    <h2 id="h-scene">Scene <small>long-horizon chores: drawer, window, buttons and a cube</small></h2>
+    <div class="row">
+      <figure><video src="videos/scene-v0_data.mp4" poster="posters/scene-v0_data.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Scene logged play data"></video><figcaption><span class="chip data">Data</span>Logged play<code>scene</code></figcaption></figure>
+      <figure><video src="videos/scene-v0_task4.mp4" poster="posters/scene-v0_task4.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Scene task 4"></video><figcaption><span class="chip task">Task</span>Task 4<code>scene</code></figcaption></figure>
+      <figure><video src="videos/scene-v0_task5.mp4" poster="posters/scene-v0_task5.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Scene task 5"></video><figcaption><span class="chip task">Task</span>Task 5<code>scene</code></figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-puzzle">
+    <h2 id="h-puzzle">Puzzle <small>press buttons to reach a target light pattern</small></h2>
+    <div class="row">
+      <figure><video src="videos/puzzle-4x6-v0_data.mp4" poster="posters/puzzle-4x6-v0_data.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Puzzle 4 by 6 logged play data"></video><figcaption><span class="chip data">Data</span>Logged play<code>puzzle-4x6</code></figcaption></figure>
+      <figure><video src="videos/puzzle-3x3-v0_task4.mp4" poster="posters/puzzle-3x3-v0_task4.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Puzzle 3 by 3 task 4"></video><figcaption><span class="chip task">Task</span>3×3, task 4<code>puzzle-3x3</code></figcaption></figure>
+      <figure><video src="videos/puzzle-4x5-v0_task2.mp4" poster="posters/puzzle-4x5-v0_task2.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Puzzle 4 by 5 task 2"></video><figcaption><span class="chip task">Task</span>4×5, task 2<code>puzzle-4x5</code></figcaption></figure>
+    </div>
+  </section>
+
+  <p class="foot">Environments and demo videos from OGBench (Park et al., 2025); these are not PCBF rollouts. PCBF is evaluated on these task families in the paper. Boyang Xu · Arizona State University · “Path-Coupled Bellman Flows for Distributional Reinforcement Learning” (ICML 2026), <a href="https://arxiv.org/abs/2605.08253" target="_blank" rel="noopener">arXiv:2605.08253</a></p>
+</main>
+
+</body>
+</html>
